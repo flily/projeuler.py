@@ -8,6 +8,7 @@ Main entry, runner of all problem solutions.
 
 
 import os
+import sys
 import importlib
 import argparse
 from typing import (
@@ -87,7 +88,9 @@ def find_problem_solvers(
     target_dir = f"{dirname}"
 
     id_set = set(id_list or [])
-    for filename in os.listdir(target_dir):
+    file_list = os.listdir(target_dir)
+    file_list.sort()
+    for filename in file_list:
         if not filename.endswith(".py"):
             continue
 
@@ -135,6 +138,7 @@ def do_run(id_list: List[int], check: bool):
     """
     Run problems.
     """
+    retcode = 0
     for problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
         time_start: datetime
         time_finish: datetime
@@ -159,12 +163,16 @@ def do_run(id_list: List[int], check: bool):
                 result = "correct"
             else:
                 result = "wrong"
+                retcode = 1
+
             line.append(f" {result:8}")
 
         dt = 1000.0 * (time_finish - time_start).total_seconds()
         line.append(f" {dt:.3f}ms")
 
         print("".join(line))
+
+    sys.exit(retcode)
 
 
 def main():
