@@ -188,6 +188,9 @@ def main():
     elif args.command == "run":
         do_run(args.id, args.check)
 
+    else:
+        parser.print_help()
+
 
 if __name__ == "__main__":
     main()
