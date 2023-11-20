@@ -32,13 +32,40 @@ def is_palindrome_6(n: int) -> bool:
     return True
 
 
-def solve() -> int:
+def solve_in_integer() -> int:
     i, j = 0, 0
     while i < 999 and j < 999:
         x, y = 999 - i, 999 - j
         while x < 1000:
             n = x * y
             if is_palindrome_6(n):
+                return n
+
+            x += 1
+            y -= 1
+
+        if i == j:
+            j += 1
+        else:
+            i += 1
+
+
+def is_palindrome_string(n: int) -> bool:
+    """
+    Check if n is a palindrome
+    """
+    a = str(n)
+    b = a[::-1]
+    return a == b
+
+
+def solve_in_string() -> int:
+    i, j = 0, 0
+    while i < 999 and j < 999:
+        x, y = 999 - i, 999 - j
+        while x < 1000:
+            n = x * y
+            if is_palindrome_string(n):
                 return n
 
             x += 1

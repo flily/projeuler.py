@@ -123,7 +123,7 @@ def run_solver(solver: Callable[[], int], timeout: float = 1000.0) -> Result:
     thread.join(timeout=timeout / 1000)
     time_finish = datetime.now()
     if isinstance(result, _TimeOutResult):
-        return None, -1000.0
+        return None, -timeout
 
     dt = 1000.0 * (time_finish - time_start).total_seconds()
     return result, dt
