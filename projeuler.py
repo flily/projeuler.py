@@ -179,9 +179,9 @@ class ProblemSolver:
                 r = "no answer returned"
 
         if key != "":
-            line = [f"{'':<5} {key:<40} {r:<10}"]
+            line = [f"{'':<5} {key:<40} {r:<15}"]
         else:
-            line = [f"{pid:<5} {self.title:.<40} {r:<10}"]
+            line = [f"{pid:<5} {self.title:.<40} {r:<15}"]
 
         if check:
             if self.answer is None:

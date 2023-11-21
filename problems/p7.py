@@ -47,8 +47,6 @@ def solve_with_filter() -> int:
     return primes[-1]
 
 
-# from line_profiler_pycharm import profile
-# @profile
 def solve_with_filter_and_prealloc_space() -> int:
     primes = [11, 13, 17, 19] + ([0] * (PRIME_COUNT - 8))
     c = 4
@@ -128,6 +126,3 @@ def solve_naive_with_prealloc_space() -> int:
 
     return primes[-1]
 
-
-if __name__ == "__main__":
-    solve_with_filter_and_prealloc_space()
