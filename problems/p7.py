@@ -125,4 +125,3 @@ def solve_naive_with_prealloc_space() -> int:
         i += 2
 
     return primes[-1]
-

@@ -13,15 +13,15 @@ import inspect
 import importlib
 import argparse
 import math
+
+from datetime import datetime
+from threading import Thread
 from typing import (
     Callable,
     Generator,
     List,
     Mapping,
 )
-from datetime import datetime
-from threading import Thread
-
 
 PROBLEM_DIR = "problems"
 
@@ -231,6 +231,35 @@ class ProblemSolver:
         return default_result, result_map
 
 
+def _natural_filename(filename: str) -> List[str | int]:
+    parts = []
+    i = 0
+    buf, flag = [], "char"
+    while i < len(filename):
+        c = filename[i]
+        cf = "digit" if c.isdigit() else "char"
+        if cf != flag:
+            n = "".join(buf)
+            if flag == "digit":
+                n = int(n)
+
+            parts.append(n)
+            flag = cf
+            buf = []
+
+        buf.append(c)
+        i += 1
+
+    if len(buf) > 0:
+        n = "".join(buf)
+        if flag == "digit":
+            n = int(n)
+
+        parts.append(n)
+
+    return parts
+
+
 def find_problem_solvers(
     dirname: str, id_list: List[int] = None
 ) -> Generator[ProblemSolver, None, None]:
@@ -241,8 +270,9 @@ def find_problem_solvers(
 
     id_set = set(id_list or [])
     file_list = os.listdir(target_dir)
-    file_list.sort()
-    for filename in file_list:
+    file_natural_list = [(filename, _natural_filename(filename)) for filename in file_list]
+    file_natural_list.sort(key=lambda x: x[1])
+    for filename, _ in file_natural_list:
         if not filename.endswith(".py"):
             continue
 
