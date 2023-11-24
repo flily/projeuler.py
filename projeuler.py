@@ -143,6 +143,7 @@ class ProblemSolver:
         self.solvers = {}
         self.title = ""
         self.content = ""
+        self.timeout = 0.0
 
     def set_document(self, doc: str):
         """
@@ -221,7 +222,7 @@ class ProblemSolver:
             if name is not None and key != name:
                 continue
 
-            result, time_cost = run_solver(solver, timeout=timeout)
+            result, time_cost = run_solver(solver, timeout=timeout + self.timeout)
             item = Result(result, time_cost)
             if key == "":
                 default_result = item
@@ -292,6 +293,9 @@ def find_problem_solvers(
 
             solver = ProblemSolver(mod.PID, mod.ANSWER)
             solver.set_document(mod.__doc__)
+            if hasattr(mod, "TIMEOUT"):
+                solver.timeout = mod.TIMEOUT
+
             for name, func in inspect.getmembers(mod, inspect.isfunction):
                 if name == "solve":
                     solver.add_solver("", func)
