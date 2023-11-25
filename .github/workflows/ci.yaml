@@ -16,9 +16,13 @@ permissions:
 
 jobs:
   run-check:
-    runs-on: ubuntu-latest
+    name: Run check on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
         python-version:
           - "3.11"
     steps:
