@@ -36,11 +36,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install pylint
     - name: Analysing the code with pylint
+      if: matrix.os == 'ubuntu-latest'
       run: |
         pylint --score=yes \
-                --fail-under=8.0 \
-                --source-root=server \
-                --ignore-paths=server/tests/ \
+                --fail-under=9.5 \
+                $(git ls-files '*.py')
+    - name: Analysing the code with pylint
+      if: matrix.os == 'windows-latest'
+      run: |
+        pylint --score=yes `
+                --fail-under=9.5 `
                 $(git ls-files '*.py')
     - name: Run on all solutions
       run: |
