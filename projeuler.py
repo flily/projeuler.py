@@ -15,7 +15,6 @@ import argparse
 import math
 import time
 
-from datetime import datetime
 from threading import Thread
 from typing import (
     Callable,
@@ -125,14 +124,11 @@ def run_solver(solver: Callable[[], int], timeout: float = 1000.0) -> Result:
         dt = 1000.0 * (time_finish - time_start)
 
     thread = Thread(target=wrapper)
-    time_start = datetime.now()
     thread.start()
     thread.join(timeout=timeout / 1000)
-    time_finish = datetime.now()
     if isinstance(result, _TimeOutResult):
         return None, -timeout
 
-    dt = 1000.0 * (time_finish - time_start).total_seconds()
     return result, dt
 
 
