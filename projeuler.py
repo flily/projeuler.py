@@ -13,6 +13,7 @@ import inspect
 import importlib
 import argparse
 import math
+import time
 
 from datetime import datetime
 from threading import Thread
@@ -112,10 +113,16 @@ def run_solver(solver: Callable[[], int], timeout: float = 1000.0) -> Result:
     Run a solver function.
     """
     result = _TimeOutResult()
+    dt = 0.0
 
     def wrapper():
         nonlocal result
+        nonlocal dt
+
+        time_start = time.perf_counter()
         result = solver()
+        time_finish = time.perf_counter()
+        dt = 1000.0 * (time_finish - time_start)
 
     thread = Thread(target=wrapper)
     time_start = datetime.now()
