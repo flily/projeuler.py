@@ -49,6 +49,8 @@ def solve_in_integer() -> int:
         else:
             i += 1
 
+    return None
+
 
 def is_palindrome_string(n: int) -> bool:
     """
@@ -75,3 +77,5 @@ def solve_in_string() -> int:
             j += 1
         else:
             i += 1
+
+    return None
