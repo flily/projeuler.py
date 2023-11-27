@@ -66,9 +66,9 @@ class Result:
     Result of a problem solution.
     """
 
-    def __init__(self, result: int, time: float):
+    def __init__(self, result: int, run_time: float):
         self.result = result
-        self.time = time
+        self.time = run_time
 
     def __repr__(self) -> str:
         return f"<{self.result}, {self.time}>"
@@ -264,6 +264,33 @@ def _natural_filename(filename: str) -> List[str | int]:
     return parts
 
 
+def import_solver(module_name: str) -> ProblemSolver:
+    """
+    Import a problem solver.
+    """
+    mod = importlib.import_module(f"{module_name}")
+    attrs = ["PID", "ANSWER"]
+    for attr in attrs:
+        if not hasattr(mod, attr):
+            raise RuntimeError(f"Missing attribute {attr} in {module_name}")
+
+    solver = ProblemSolver(mod.PID, mod.ANSWER)
+    solver.set_document(mod.__doc__)
+    if hasattr(mod, "TIMEOUT"):
+        solver.timeout = mod.TIMEOUT
+
+    for name, func in inspect.getmembers(mod, inspect.isfunction):
+        if name == "solve":
+            solver.add_solver("", func)
+
+        elif len(name) > 6 and name.startswith("solve_"):
+            solver.add_solver(name[6:], func)
+
+        else:
+            continue
+
+    return solver
+
 def find_problem_solvers(
     dirname: str, id_list: List[int] = None
 ) -> Generator[ProblemSolver, None, None]:
@@ -288,27 +315,7 @@ def find_problem_solvers(
         module_name = f"{package_name}.{base_name}"
 
         try:
-            mod = importlib.import_module(f"{module_name}")
-            attrs = ["PID", "ANSWER"]
-            for attr in attrs:
-                if not hasattr(mod, attr):
-                    raise RuntimeError(f"Missing attribute {attr} in {module_name}")
-
-            solver = ProblemSolver(mod.PID, mod.ANSWER)
-            solver.set_document(mod.__doc__)
-            if hasattr(mod, "TIMEOUT"):
-                solver.timeout = mod.TIMEOUT
-
-            for name, func in inspect.getmembers(mod, inspect.isfunction):
-                if name == "solve":
-                    solver.add_solver("", func)
-
-                elif len(name) > 6 and name.startswith("solve_"):
-                    solver.add_solver(name[6:], func)
-
-                else:
-                    continue
-
+            solver = import_solver(module_name)
             if len(id_set) > 0 and solver.pid not in id_set:
                 continue
 
