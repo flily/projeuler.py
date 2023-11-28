@@ -149,7 +149,7 @@ class SolutionMethod:
             else:
                 rc = "wrong"
 
-            line.append(f" {rc:8}")
+            line.append(f" {rc:10}")
 
         line.append(f" {self.time_cost:10.3f}ms")
         if suffix is not None:
@@ -254,9 +254,9 @@ class ProblemSolver:
 
             placeholder = ""
             if check:
-                lines.append(header + f" {placeholder:24} {total_cost:10.3f}ms")
+                lines.insert(0, header + f" {placeholder:26} {total_cost:10.3f}ms")
             else:
-                lines.append(header + f" {placeholder:15} {total_cost:10.3f}ms")
+                lines.insert(0, header + f" {placeholder:17} {total_cost:10.3f}ms")
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
