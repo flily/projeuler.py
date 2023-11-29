@@ -164,11 +164,14 @@ class ProblemSolver:
     """
 
     methods: Mapping[str, SolutionMethod]
+    pid: int
+    answer: int | None = None
+    timeout: float = 0.0
     __doc__ = ""
 
-    def __init__(self, pid: int, answer: int):
+    def __init__(self, pid: int):
         self.pid = pid
-        self.answer = answer
+        self.answer = None
         self.methods = {}
         self.title = ""
         self.content = ""
@@ -254,9 +257,9 @@ class ProblemSolver:
 
             placeholder = ""
             if check:
-                lines.insert(0, header + f" {placeholder:26} {total_cost:10.3f}ms")
+                lines.insert(0, header + f" {placeholder:24} {total_cost:10.3f}ms")
             else:
-                lines.insert(0, header + f" {placeholder:17} {total_cost:10.3f}ms")
+                lines.insert(0, header + f" {placeholder:15} {total_cost:10.3f}ms")
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
@@ -313,15 +316,19 @@ def import_solver(module_name: str) -> ProblemSolver:
     Import a problem solver.
     """
     mod = importlib.import_module(f"{module_name}")
-    attrs = ["PID", "ANSWER"]
-    for attr in attrs:
+    required_attrs = ["PID"]
+    for attr in required_attrs:
         if not hasattr(mod, attr):
             raise RuntimeError(f"Missing attribute {attr} in {module_name}")
 
-    solver = ProblemSolver(mod.PID, mod.ANSWER)
+    solver = ProblemSolver(mod.PID)
     solver.set_document(mod.__doc__)
-    if hasattr(mod, "TIMEOUT"):
-        solver.timeout = mod.TIMEOUT
+
+    if hasattr(mod, "ANSWER"):
+        solver.answer = mod.ANSWER
+
+    if hasattr(mod, "TIMEOUT_EXT"):
+        solver.timeout = mod.TIMEOUT_EXT
 
     for name, func in inspect.getmembers(mod, inspect.isfunction):
         if name == "solve":
