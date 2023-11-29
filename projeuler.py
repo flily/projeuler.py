@@ -257,7 +257,7 @@ class ProblemSolver:
 
             placeholder = ""
             if check:
-                lines.insert(0, header + f" {placeholder:24} {total_cost:10.3f}ms")
+                lines.insert(0, header + f" {placeholder:26} {total_cost:10.3f}ms")
             else:
                 lines.insert(0, header + f" {placeholder:15} {total_cost:10.3f}ms")
 
