@@ -35,11 +35,15 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint
-    - name: Show runner info
+    - name: Show runner info (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
         cat /proc/cpuinfo | grep model
         free
+    - name: Show runner info (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        Get-ComputerInfo -Property CsProcessors, CsNumberOfLogicalProcessors, OsTotalVisibleMemorySize
     - name: Analysing the code with pylint
       if: matrix.os == 'ubuntu-latest'
       run: |
