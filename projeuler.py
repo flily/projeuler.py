@@ -166,7 +166,7 @@ class ProblemSolver:
     methods: Mapping[str, SolutionMethod]
     pid: int
     answer: int | None = None
-    timeout: float = 0.0
+    timeout_ext: float = 0.0
     __doc__ = ""
 
     def __init__(self, pid: int):
@@ -175,7 +175,7 @@ class ProblemSolver:
         self.methods = {}
         self.title = ""
         self.content = ""
-        self.timeout = 0.0
+        self.timeout_ext = 0.0
 
     def set_document(self, doc: str):
         """
@@ -256,14 +256,20 @@ class ProblemSolver:
                 total_cost += method.time_cost
 
             placeholder = ""
+            note = ""
+            if self.timeout_ext > 0.0:
+                note = f" [+{self.timeout_ext:.2f}ms]"
             if check:
-                lines.insert(0, header + f" {placeholder:26} {total_cost:10.3f}ms")
+                lines.insert(0, header + f" {placeholder:26} {total_cost:10.3f}ms {note}")
             else:
-                lines.insert(0, header + f" {placeholder:15} {total_cost:10.3f}ms")
+                lines.insert(0, header + f" {placeholder:15} {total_cost:10.3f}ms {note}")
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
-            lines.append(method.print(header, None, answer=answer))
+            line = method.print(header, None, answer=answer)
+            if self.timeout_ext > 0.0:
+                line += f" [+{self.timeout_ext:.2f}ms]"
+            lines.append(line)
 
         else:
             header += " NO SOLUTION"
@@ -279,7 +285,7 @@ class ProblemSolver:
             if name is not None and key != name:
                 continue
 
-            method.solve(timeout=timeout + self.timeout)
+            method.solve(timeout=timeout + self.timeout_ext)
 
 
 def _natural_filename(filename: str) -> List[str | int]:
@@ -328,7 +334,7 @@ def import_solver(module_name: str) -> ProblemSolver:
         solver.answer = mod.ANSWER
 
     if hasattr(mod, "TIMEOUT_EXT"):
-        solver.timeout = mod.TIMEOUT_EXT
+        solver.timeout_ext = mod.TIMEOUT_EXT
 
     for name, func in inspect.getmembers(mod, inspect.isfunction):
         if name == "solve":
