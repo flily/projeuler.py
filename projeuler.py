@@ -13,8 +13,8 @@ import inspect
 import importlib
 import argparse
 import time
+import multiprocessing
 
-from threading import Thread
 from typing import (
     Callable,
     Generator,
@@ -74,29 +74,28 @@ class SolutionMethod:
         self.result = _TimeoutResult()
         self.finished = False
 
+    def _proc_main(self, queue: multiprocessing.Queue):
+        result = _TimeoutResult()
+        time_start = time.perf_counter()
+        result = self.func()
+        time_finish = time.perf_counter()
+        dt = 1000.0 * (time_finish - time_start)
+
+        queue.put((result, dt))
+
     def solve(self, timeout: float = 1000.0) -> None:
         """
         Run the solution method.
         """
-        result = _TimeoutResult()
         dt = 0.0
-        finished = False
+        queue = multiprocessing.Queue()
 
-        def thread_main():
-            nonlocal result
-            nonlocal dt
-            nonlocal finished
+        task = multiprocessing.Process(target=self._proc_main, args=(queue,))
+        task.start()
+        task.join(timeout=timeout / 1000)
 
-            time_start = time.perf_counter()
-            result = self.func()
-            time_finish = time.perf_counter()
-            dt = 1000.0 * (time_finish - time_start)
-            finished = True
-
-        thrad = Thread(target=thread_main)
-        thrad.start()
-        thrad.join(timeout=timeout / 1000)
-        if finished:
+        if not queue.empty():
+            result, dt = queue.get()
             self.finished = True
             self.result = result
             self.time_cost = dt
@@ -105,6 +104,7 @@ class SolutionMethod:
             self.finished = False
             self.result = None
             self.time_cost = timeout
+            task.terminate()
 
     @property
     def title(self) -> str:
@@ -199,21 +199,25 @@ class ProblemSolver:
         method = SolutionMethod(func, name, note)
         self.methods[name] = method
 
-    def is_corrent(self) -> bool:
+    def is_correct(self) -> bool:
         """
-        Is the solution correct?
+        Is the solution correct, should have at less one correct result.
         """
+        result = False
         for method in self.methods.values():
             if method.is_timeout():
-                return False
+                continue
 
             if method.result is None:
-                return False
+                continue
 
             if self.answer is not None and method.result != self.answer:
-                return False
+                result = False
+                continue
 
-        return True
+            result = True
+
+        return result
 
     def find_best_solution(self) -> str:
         """
@@ -258,11 +262,16 @@ class ProblemSolver:
             placeholder = ""
             note = ""
             if self.timeout_ext > 0.0:
-                note = f" [+{self.timeout_ext:.2f}ms]"
+                note = f"[+{self.timeout_ext:.2f}ms]"
             if check:
-                lines.insert(0, header + f" {placeholder:26} {total_cost:10.3f}ms {note}")
+                correct = "correct" if self.is_correct() else "wrong"
+                lines.insert(
+                    0, header + f" {placeholder:15} {correct:10} {total_cost:10.3f}ms {note}"
+                )
             else:
-                lines.insert(0, header + f" {placeholder:15} {total_cost:10.3f}ms {note}")
+                lines.insert(
+                    0, header + f" {placeholder:15} {total_cost:10.3f}ms {note}"
+                )
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
@@ -407,7 +416,7 @@ def do_run(id_list: List[int], timeout: float, check: bool):
     for problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
         problem.solve(timeout=timeout)
         line = problem.print(check=check)
-        if check and not problem.is_corrent():
+        if check and not problem.is_correct():
             retcode = 1
 
         print(line)
