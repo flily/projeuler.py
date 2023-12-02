@@ -27,8 +27,6 @@ What is the value of the first triangle number to have over five hundred divisor
 PID = 12
 ANSWER = 76576500
 
-TIMEOUT_EXT = 2000
-
 
 def get_divisors(n: int) -> int:
     """
@@ -43,9 +41,26 @@ def get_divisors(n: int) -> int:
     return c
 
 
-def solve() -> int:
+def solve_naive() -> int:
     n, i = 1, 2
     while get_divisors(n) < 500:
+        n += i
+        i += 1
+
+    return n
+
+
+def solve_with_filter() -> int:
+    n, i = 1, 2
+    found = False
+    common_factors = 2 * 3 * 5 * 7 * 11 * 13
+    while not found:
+        if n % common_factors == 0:
+            c = get_divisors(n)
+            if c >= 500:
+                found = True
+                break
+
         n += i
         i += 1
 
