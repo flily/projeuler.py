@@ -7,6 +7,8 @@ Main entry, runner of all problem solutions.
 """
 
 
+from __future__ import annotations
+
 import os
 import sys
 import inspect
@@ -18,7 +20,7 @@ import multiprocessing
 from typing import (
     Callable,
     Generator,
-    List,
+    Iterable,
     Mapping,
 )
 
@@ -83,28 +85,18 @@ class SolutionMethod:
 
         queue.put((result, dt))
 
-    def solve(self, timeout: float = 1000.0) -> None:
+    def solve(self, runner: Runner, timeout: float = 1000.0) -> None:
         """
         Run the solution method.
         """
-        dt = 0.0
-        queue = multiprocessing.Queue()
-
-        task = multiprocessing.Process(target=self._proc_main, args=(queue,))
-        task.start()
-        task.join(timeout=timeout / 1000)
-
-        if not queue.empty():
-            result, dt = queue.get()
-            self.finished = True
+        result, timeout, cost = runner.run_func(self.func, timeout=timeout)
+        self.finished = not timeout
+        self.time_cost = cost
+        if not timeout:
             self.result = result
-            self.time_cost = dt
 
         else:
-            self.finished = False
             self.result = None
-            self.time_cost = timeout
-            task.terminate()
 
     @property
     def title(self) -> str:
@@ -266,7 +258,9 @@ class ProblemSolver:
             if check:
                 correct = "correct" if self.is_correct() else "wrong"
                 lines.insert(
-                    0, header + f" {placeholder:15} {correct:10} {total_cost:10.3f}ms {note}"
+                    0,
+                    header
+                    + f" {placeholder:15} {correct:10} {total_cost:10.3f}ms {note}",
                 )
             else:
                 lines.insert(
@@ -286,7 +280,7 @@ class ProblemSolver:
 
         return "\n".join(lines)
 
-    def solve(self, name: str = None, timeout: float = 1000.0) -> None:
+    def solve(self, runner: Runner, name: str = None, timeout: float = 1000.0) -> None:
         """
         Solve the problem.
         """
@@ -294,10 +288,56 @@ class ProblemSolver:
             if name is not None and key != name:
                 continue
 
-            method.solve(timeout=timeout + self.timeout_ext)
+            method.solve(runner, timeout=timeout + self.timeout_ext)
 
 
-def _natural_filename(filename: str) -> List[str | int]:
+def _return_zero() -> int:
+    return 0
+
+
+class Runner:
+    """
+    Runner of all problem solvers, with managed process pool.
+    """
+
+    pool: multiprocessing.Pool
+
+    def __init__(self):
+        self.pool = None
+
+    def reset_pool(self) -> None:
+        """
+        Reset the process pool.
+        """
+        if self.pool is not None:
+            self.pool.terminate()
+            self.pool.close()
+
+        self.pool = multiprocessing.Pool(processes=1)
+        self.run_func(_return_zero)     # warm up worker process
+
+    def run_func(self, func, timeout: float = 1000.0) -> tuple[int, bool, float]:
+        """
+        Run a function.
+        """
+        result = _TimeoutResult()
+        time_start = time.perf_counter()
+        is_timeout = False
+
+        try:
+            r = self.pool.apply_async(func)
+            result = r.get(timeout=timeout / 1000)
+
+        except multiprocessing.TimeoutError:
+            self.reset_pool()
+            is_timeout = True
+
+        time_finish = time.perf_counter()
+        dt = 1000.0 * (time_finish - time_start)
+        return result, is_timeout, dt
+
+
+def _natural_filename(filename: str) -> Iterable[str | int]:
     parts = []
     i = 0
     buf, flag = [], "char"
@@ -359,7 +399,7 @@ def import_solver(module_name: str) -> ProblemSolver:
 
 
 def find_problem_solvers(
-    dirname: str, id_list: List[int] = None
+    dirname: str, id_list: Iterable[int] = None
 ) -> Generator[ProblemSolver, None, None]:
     """
     Find all problem solvers in given directory.
@@ -397,7 +437,7 @@ def find_problem_solvers(
             print(f"Syntax error in {module_name}/{filename}: {ex}")
 
 
-def do_list(id_list: List[int], full: bool):
+def do_list(id_list: Iterable[int], full: bool):
     """
     List problems.
     """
@@ -408,13 +448,20 @@ def do_list(id_list: List[int], full: bool):
             print()
 
 
-def do_run(id_list: List[int], timeout: float, check: bool):
+def _return_zero() -> int:
+    return 0
+
+
+def do_run(id_list: Iterable[int], timeout: float, check: bool):
     """
     Run problems.
     """
+    runner = Runner()
+    runner.reset_pool()
+
     retcode = 0
     for problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
-        problem.solve(timeout=timeout)
+        problem.solve(runner, timeout=timeout)
         line = problem.print(check=check)
         if check and not problem.is_correct():
             retcode = 1
