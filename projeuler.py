@@ -295,6 +295,26 @@ def _return_zero() -> int:
     return 0
 
 
+class Job:
+    """
+    Run job
+    """
+
+    def __init__(self, func: Callable[[], int]):
+        self.func = func
+
+    def run(self) -> (int, float):
+        """
+        Run function
+        """
+        result = _TimeoutResult()
+        time_start = time.perf_counter()
+        result = self.func()
+        time_finish = time.perf_counter()
+        dt = 1000.0 * (time_finish - time_start)
+        return result, dt
+
+
 class Runner:
     """
     Runner of all problem solvers, with managed process pool.
@@ -314,26 +334,27 @@ class Runner:
             self.pool.close()
 
         self.pool = multiprocessing.Pool(processes=1)
-        self.run_func(_return_zero)     # warm up worker process
+        self.run_func(_return_zero)  # warm up worker process
 
     def run_func(self, func, timeout: float = 1000.0) -> tuple[int, bool, float]:
         """
         Run a function.
         """
+        job = Job(func)
+        is_timeout = False
         result = _TimeoutResult()
         time_start = time.perf_counter()
-        is_timeout = False
 
         try:
-            r = self.pool.apply_async(func)
-            result = r.get(timeout=timeout / 1000)
+            r = self.pool.apply_async(job.run)
+            result, dt = r.get(timeout=timeout / 1000.0)
 
         except multiprocessing.TimeoutError:
+            time_finish = time.perf_counter()
+            dt = 1000.0 * (time_finish - time_start)
             self.reset_pool()
             is_timeout = True
 
-        time_finish = time.perf_counter()
-        dt = 1000.0 * (time_finish - time_start)
         return result, is_timeout, dt
 
 
