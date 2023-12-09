@@ -38,13 +38,14 @@ def is_prime(n: int) -> bool:
 def solve_naive() -> int:
     n = 600851475143
     i = 3
+    last = 3
     while i * i <= n:
         if is_prime(i) and n % i == 0:
-            n //= i
+            last = i
 
         i += 2
 
-    return n
+    return last
 
 
 def remove_factor(n: int, f: int) -> int:
@@ -53,6 +54,18 @@ def remove_factor(n: int, f: int) -> int:
     """
     while n % f == 0:
         n //= f
+
+    return n
+
+
+def solve_by_remove_factor() -> int:
+    n = 600851475143
+    i = 3
+    while i * i <= n:
+        if is_prime(i) and n % i == 0:
+            n = remove_factor(n, i)
+
+        i += 2
 
     return n
 
