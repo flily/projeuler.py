@@ -17,11 +17,17 @@ Show problems solved, show full problem content  with argument `-f` or `--full`.
 
 ### Command `run`
 
-Run specified problem solutions. Check answer, if a non-none value is given, with argument `-c` or `--check`.
+Run specified problem solutions. Check answer, if a non-none value is given, with argument `-c` or
+`--check`.
 
 ## Solution structure
 
-Each problem solution is a python module in `problems` directory. Only two module level variables `PID` for problem ID and `ANSWER` for answer of the problem and a function `solve` for solution are required for the module.
+Each problem solution is a python module in `problems` directory. Only two module level variables
+`PID` for problem ID and `ANSWER` for answer of the problem.
+
+Solver method functions MUST BE defined at less one, whose function name is `solve` or starts with
+`solve_`. All solver method will be run to evaluate, and at least one solver method function
+returns correct answer in timeout limit makes the framework treats this problem is solved correctly.
 
 If `ANSWER` is `None` or not presented, the solution will not be checked.
 
@@ -36,6 +42,15 @@ ANSWER = 42
 
 def solve():
     return 42
+
+
+def solve_method_1():
+    return 42
+
+
+def solve_method_2():
+    return 42
+
 
 ```
 
