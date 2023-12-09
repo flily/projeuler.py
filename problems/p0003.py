@@ -18,6 +18,35 @@ PID = 3
 ANSWER = 6857
 
 
+def is_prime(n: int) -> bool:
+    """
+    Check if n (positive) is a prime
+    """
+    if n <= 2:
+        return True
+
+    i = 3
+    while i * i <= n:
+        if n % i == 0:
+            return False
+
+        i += 2
+
+    return True
+
+
+def solve_naive() -> int:
+    n = 600851475143
+    i = 3
+    while i * i <= n:
+        if is_prime(i) and n % i == 0:
+            n //= i
+
+        i += 2
+
+    return n
+
+
 def remove_factor(n: int, f: int) -> int:
     """
     Remove all factors of n
@@ -82,7 +111,7 @@ def find_largest_prime_factor(primes: PrimeTable, n: int) -> int:
     return factors[-1]
 
 
-def solve() -> int:
+def solve_by_prime_table() -> int:
     primes_base = [3, 5, 7, 11, 13, 17, 19]
     primes = PrimeTable(primes_base)
 
