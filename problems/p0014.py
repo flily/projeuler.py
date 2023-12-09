@@ -27,8 +27,6 @@ from typing import Iterator
 PID = 14
 ANSWER = 837799
 
-TIMEOUT_EXT = 2000
-
 
 MAX_NUM = 1_000_000
 

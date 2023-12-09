@@ -14,8 +14,6 @@ Find the sum of all the primes below two million.
 PID = 10
 ANSWER = 142913828922
 
-TIMEOUT_EXT = 4000.0
-
 
 def solve_naive() -> int:
     basic_primes = [3, 5, 7, 11, 13, 17, 19]

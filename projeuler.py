@@ -45,7 +45,7 @@ def _get_parser():
         "-c", "--check", action="store_true", help="check the solution answer"
     )
     cmd_run.add_argument(
-        "-t", "--timeout", type=float, default=1000.0, help="timeout in milliseconds"
+        "-t", "--timeout", type=float, default=5000.0, help="timeout in milliseconds"
     )
     cmd_run.add_argument("id", nargs="*", type=int, help="run specific problems")
 
