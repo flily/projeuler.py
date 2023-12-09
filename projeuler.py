@@ -17,6 +17,7 @@ import argparse
 import time
 import multiprocessing
 
+from datetime import datetime
 from typing import (
     Callable,
     Generator,
@@ -574,6 +575,8 @@ def do_run(conf: RunConfigure):
     runner.reset_pool()
 
     retcode = 0
+    count = 0
+    time_start = datetime.now()
     for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
         problem.solve(runner, conf=conf)
         line = problem.print(check=conf.check)
@@ -581,6 +584,11 @@ def do_run(conf: RunConfigure):
             retcode = 1
 
         print(line)
+        count += 1
+
+    time_finish = datetime.now()
+    dt = (time_finish - time_start).total_seconds()
+    print(f"Solved {count} problems solved in {dt:.3f}s")
 
     sys.exit(retcode)
 
