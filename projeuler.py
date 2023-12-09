@@ -24,7 +24,45 @@ from typing import (
     Mapping,
 )
 
+
+import data
+
+
 PROBLEM_DIR = "problems"
+
+
+class RunConfigure:
+    """
+    Run configuration.
+    """
+
+    check: bool
+    timeout: float
+    preload: bool
+    id_list: Iterable[int]
+
+    def __init__(self):
+        self.check = False
+        self.timeout = 5000.0
+        self.preload = True
+        self.id_list = []
+
+    @staticmethod
+    def from_parser(result: argparse.Namespace) -> RunConfigure:
+        """
+        Create a run configuration from parser result.
+        """
+        conf = RunConfigure()
+        conf.check = result.check
+        conf.timeout = result.timeout
+        conf.preload = not result.no_preload
+        conf.id_list = result.id
+        if result.no_timeout:
+            conf.timeout = 0.0
+        return conf
+
+
+_default_run_configure = RunConfigure()
 
 
 def _get_parser():
@@ -45,7 +83,13 @@ def _get_parser():
         "-c", "--check", action="store_true", help="check the solution answer"
     )
     cmd_run.add_argument(
+        "--no-preload", action="store_true", help="do not preload data"
+    )
+    cmd_run.add_argument(
         "-t", "--timeout", type=float, default=5000.0, help="timeout in milliseconds"
+    )
+    cmd_run.add_argument(
+        "--no-timeout", action="store_true", help="disable timeout"
     )
     cmd_run.add_argument("id", nargs="*", type=int, help="run specific problems")
 
@@ -68,7 +112,10 @@ class SolutionMethod:
     Solution method
     """
 
-    def __init__(self, func: Callable[[], int], name: str, note: str = ""):
+    def __init__(
+        self, module_name: str, func: Callable[[], int], name: str, note: str = ""
+    ):
+        self.module_name = module_name
         self.func = func
         self.name = name
         self.note = note or ""
@@ -85,11 +132,15 @@ class SolutionMethod:
 
         queue.put((result, dt))
 
-    def solve(self, runner: Runner, timeout: float = 1000.0) -> None:
+    def solve(
+        self, runner: Runner, conf: RunConfigure, timeout: float = 0.0
+    ) -> None:
         """
         Run the solution method.
         """
-        result, timeout, cost = runner.run_func(self.func, timeout=timeout)
+        result, timeout, cost = runner.run_func(
+            self.module_name, self.func, conf=conf, timeout=timeout
+        )
         self.finished = not timeout
         self.time_cost = cost
         if not timeout:
@@ -158,10 +209,13 @@ class ProblemSolver:
     methods: Mapping[str, SolutionMethod]
     pid: int
     answer: int | None = None
+    module_name: str = ""
     timeout_ext: float = 0.0
+    has_extra_data: str = ""
     __doc__ = ""
 
-    def __init__(self, pid: int):
+    def __init__(self, pid: int, module_name: str):
+        self.module_name = module_name
         self.pid = pid
         self.answer = None
         self.methods = {}
@@ -188,7 +242,7 @@ class ProblemSolver:
         if name in self.methods:
             raise RuntimeError(f"Method {name} already exists")
 
-        method = SolutionMethod(func, name, note)
+        method = SolutionMethod(self.module_name, func, name, note)
         self.methods[name] = method
 
     def is_correct(self) -> bool:
@@ -280,7 +334,7 @@ class ProblemSolver:
 
         return "\n".join(lines)
 
-    def solve(self, runner: Runner, name: str = None, timeout: float = 1000.0) -> None:
+    def solve(self, runner: Runner, conf: RunConfigure, name: str = None) -> None:
         """
         Solve the problem.
         """
@@ -288,7 +342,12 @@ class ProblemSolver:
             if name is not None and key != name:
                 continue
 
-            method.solve(runner, timeout=timeout + self.timeout_ext)
+            params = {}
+            if conf.timeout > 0.0:
+                params["timeout"] = conf.timeout + self.timeout_ext
+            method.solve(runner, conf=conf, **params)
+
+        data.reset()
 
 
 def _return_zero() -> int:
@@ -300,13 +359,19 @@ class Job:
     Run job
     """
 
-    def __init__(self, func: Callable[[], int]):
+    def __init__(self, module_name: str, func: Callable[[], int]):
         self.func = func
+        self.module_name = module_name
+        self.preload = True
 
     def run(self) -> (int, float):
         """
         Run function
         """
+        data.try_preload(f"data.{self.module_name}")
+        if not self.preload:
+            data.reset()
+
         result = _TimeoutResult()
         time_start = time.perf_counter()
         result = self.func()
@@ -334,20 +399,29 @@ class Runner:
             self.pool.close()
 
         self.pool = multiprocessing.Pool(processes=1)
-        self.run_func(_return_zero)  # warm up worker process
+        self.run_func(
+            "", _return_zero, _default_run_configure
+        )  # warm up worker process
 
-    def run_func(self, func, timeout: float = 1000.0) -> tuple[int, bool, float]:
+    def run_func(
+        self, name: str, func, conf: RunConfigure, timeout: float = 0.0
+    ) -> tuple[int, bool, float]:
         """
         Run a function.
         """
-        job = Job(func)
+        job = Job(name, func)
+        job.preload = conf.preload
+
         is_timeout = False
         result = _TimeoutResult()
         time_start = time.perf_counter()
+        get_params = {}
+        if timeout > 0.0:
+            get_params["timeout"] = timeout / 1000.0
 
         try:
             r = self.pool.apply_async(job.run)
-            result, dt = r.get(timeout=timeout / 1000.0)
+            result, dt = r.get(**get_params)
 
         except multiprocessing.TimeoutError:
             time_finish = time.perf_counter()
@@ -387,7 +461,7 @@ def _natural_filename(filename: str) -> Iterable[str | int]:
     return parts
 
 
-def import_solver(module_name: str) -> ProblemSolver:
+def import_solver(module_name: str, base_name: str) -> ProblemSolver:
     """
     Import a problem solver.
     """
@@ -397,7 +471,7 @@ def import_solver(module_name: str) -> ProblemSolver:
         if not hasattr(mod, attr):
             raise RuntimeError(f"Missing attribute {attr} in {module_name}")
 
-    solver = ProblemSolver(mod.PID)
+    solver = ProblemSolver(mod.PID, base_name)
     solver.set_document(mod.__doc__)
 
     if hasattr(mod, "ANSWER"):
@@ -417,6 +491,21 @@ def import_solver(module_name: str) -> ProblemSolver:
             continue
 
     return solver
+
+
+def check_extra_data(module_name: str) -> bool:
+    """
+    Check if there is extra data for a problem.
+    """
+    try:
+        mod = importlib.import_module(f"{module_name}")
+        if not hasattr(mod, "load"):
+            return False
+
+        return True
+
+    except ImportError:
+        return False
 
 
 def find_problem_solvers(
@@ -443,11 +532,15 @@ def find_problem_solvers(
 
         package_name = dirname.replace("/", ".")
         module_name = f"{package_name}.{base_name}"
+        data_name = f"data.{base_name}"
 
         try:
-            solver = import_solver(module_name)
+            solver = import_solver(module_name, base_name)
             if len(id_set) > 0 and solver.pid not in id_set:
                 continue
+
+            if check_extra_data(data_name):
+                solver.has_extra_data = data_name
 
             yield solver
 
@@ -473,7 +566,7 @@ def _return_zero() -> int:
     return 0
 
 
-def do_run(id_list: Iterable[int], timeout: float, check: bool):
+def do_run(conf: RunConfigure):
     """
     Run problems.
     """
@@ -481,10 +574,10 @@ def do_run(id_list: Iterable[int], timeout: float, check: bool):
     runner.reset_pool()
 
     retcode = 0
-    for problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
-        problem.solve(runner, timeout=timeout)
-        line = problem.print(check=check)
-        if check and not problem.is_correct():
+    for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
+        problem.solve(runner, conf=conf)
+        line = problem.print(check=conf.check)
+        if conf.check and not problem.is_correct():
             retcode = 1
 
         print(line)
@@ -503,7 +596,8 @@ def main():
         do_list(args.id, args.full)
 
     elif args.command == "run":
-        do_run(args.id, args.timeout, args.check)
+        conf = RunConfigure.from_parser(args)
+        do_run(conf)
 
     else:
         parser.print_help()
