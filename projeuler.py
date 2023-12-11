@@ -308,7 +308,7 @@ class ProblemSolver:
             total_cost = 0.0
             for name, method in self.each_methods():
                 suffix = "*BEST" if name == best else None
-                title = f"      {method.title:.<40}"
+                title = f"      + {method.title:.<38}"
                 line = method.print(title, suffix, answer=answer)
                 lines.append(line)
                 total_cost += method.time_cost
