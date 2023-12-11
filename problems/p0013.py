@@ -228,4 +228,4 @@ def solve_in_string():
 def solve_in_math():
     s = sum(NUMBERS)
     size = int(math.log10(s)) + 1
-    return s // 10 ** (size - 10)
+    return s // (10 ** (size - 10))
