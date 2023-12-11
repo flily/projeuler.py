@@ -79,6 +79,9 @@ def _get_parser():
         "id", nargs="*", type=int, help="show specific problem information"
     )
 
+    cmd_create = subparsers.add_parser("create", help="create solutions of problems")
+    cmd_create.add_argument("id", nargs="*", type=int, help="create specific problems")
+
     cmd_run = subparsers.add_parser("run", help="run problems")
     cmd_run.add_argument(
         "-c", "--check", action="store_true", help="check the solution answer"
@@ -89,9 +92,7 @@ def _get_parser():
     cmd_run.add_argument(
         "-t", "--timeout", type=float, default=5000.0, help="timeout in milliseconds"
     )
-    cmd_run.add_argument(
-        "--no-timeout", action="store_true", help="disable timeout"
-    )
+    cmd_run.add_argument("--no-timeout", action="store_true", help="disable timeout")
     cmd_run.add_argument("id", nargs="*", type=int, help="run specific problems")
 
     return parser
@@ -133,9 +134,7 @@ class SolutionMethod:
 
         queue.put((result, dt))
 
-    def solve(
-        self, runner: Runner, conf: RunConfigure, timeout: float = 0.0
-    ) -> None:
+    def solve(self, runner: Runner, conf: RunConfigure, timeout: float = 0.0) -> None:
         """
         Run the solution method.
         """
@@ -219,6 +218,7 @@ class ProblemSolver:
         self.module_name = module_name
         self.pid = pid
         self.answer = None
+        self._method_names = []
         self.methods = {}
         self.title = ""
         self.content = ""
@@ -244,7 +244,15 @@ class ProblemSolver:
             raise RuntimeError(f"Method {name} already exists")
 
         method = SolutionMethod(self.module_name, func, name, note)
+        self._method_names.append(name)
         self.methods[name] = method
+
+    def each_methods(self) -> Generator[tuple[str, SolutionMethod], None, None]:
+        """
+        Iterate all methods.
+        """
+        for name in self._method_names:
+            yield name, self.methods[name]
 
     def is_correct(self) -> bool:
         """
@@ -272,7 +280,7 @@ class ProblemSolver:
         """
         cost = None
         best = None
-        for name, method in self.methods.items():
+        for name, method in self.each_methods():
             if method.is_timeout():
                 continue
 
@@ -289,17 +297,16 @@ class ProblemSolver:
         """
         Print result of a problem solver.
         """
-        pid = self.pid
         lines = []
 
         answer = self.answer
         if not check:
             answer = None
-        header = f"{pid:<5} {self.title:.<40}"
+        header = f"{self.pid:<5} {self.title:.<40}"
         if len(self.methods) > 1:
             best = self.find_best_solution()
             total_cost = 0.0
-            for name, method in self.methods.items():
+            for name, method in self.each_methods():
                 suffix = "*BEST" if name == best else None
                 title = f"      {method.title:.<40}"
                 line = method.print(title, suffix, answer=answer)
@@ -339,7 +346,7 @@ class ProblemSolver:
         """
         Solve the problem.
         """
-        for key, method in self.methods.items():
+        for key, method in self.each_methods():
             if name is not None and key != name:
                 continue
 
@@ -391,14 +398,20 @@ class Runner:
     def __init__(self):
         self.pool = None
 
-    def reset_pool(self) -> None:
+    def close(self) -> None:
         """
-        Reset the process pool.
+        Close the process pool.
         """
         if self.pool is not None:
             self.pool.terminate()
             self.pool.close()
+            self.pool = None
 
+    def reset_pool(self) -> None:
+        """
+        Reset the process pool.
+        """
+        self.close()
         self.pool = multiprocessing.Pool(processes=1)
         self.run_func(
             "", _return_zero, _default_run_configure
@@ -482,6 +495,7 @@ def import_solver(module_name: str, base_name: str) -> ProblemSolver:
         solver.timeout_ext = mod.TIMEOUT_EXT
 
     for name, func in inspect.getmembers(mod, inspect.isfunction):
+        # inspect.getmembers() returns all members sorted by name
         if name == "solve":
             solver.add_method(func, "", func.__doc__)
 
@@ -563,6 +577,39 @@ def do_list(id_list: Iterable[int], full: bool):
             print()
 
 
+def do_create(id_list: Iterable[int]):
+    """
+    Create solution of a problem.
+    """
+    for pid in id_list:
+        filename = f"p{pid:04d}.py"
+        filepath = os.path.join(PROBLEM_DIR, filename)
+        if os.path.exists(filepath):
+            print(f"File {filepath} already exists")
+            continue
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(
+                f"#!/usr/bin/env python3\n"
+                f"# coding: utf-8\n"
+                f"\n"
+                f"\n"
+                f'"""\n'
+                f"Problem title\n"
+                f"\n"
+                f"Problem description\n"
+                f'"""\n'
+                f"\n"
+                f"\n"
+                f"PID = {pid}\n"
+                f"ANSWER = None\n"
+                f"\n"
+                f"\n"
+                f"def solve() -> int:\n"
+                f"    return 0\n"
+            )
+
+
 def _return_zero() -> int:
     return 0
 
@@ -574,21 +621,26 @@ def do_run(conf: RunConfigure):
     runner = Runner()
     runner.reset_pool()
 
-    retcode = 0
+    retcode = 1
     count = 0
     time_start = datetime.now()
-    for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
-        problem.solve(runner, conf=conf)
-        line = problem.print(check=conf.check)
-        if conf.check and not problem.is_correct():
-            retcode = 1
+    try:
+        for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
+            problem.solve(runner, conf=conf)
+            line = problem.print(check=conf.check)
+            if conf.check and not problem.is_correct():
+                retcode = 1
 
-        print(line)
-        count += 1
+            print(line)
+            count += 1
 
-    time_finish = datetime.now()
-    dt = (time_finish - time_start).total_seconds()
-    print(f"Solved {count} problems solved in {dt:.3f}s")
+        time_finish = datetime.now()
+        dt = (time_finish - time_start).total_seconds()
+        print(f"Solved {count} problems solved in {dt:.3f}s")
+        retcode = 0
+
+    finally:
+        runner.close()
 
     sys.exit(retcode)
 
@@ -602,6 +654,9 @@ def main():
 
     if args.command == "list":
         do_list(args.id, args.full)
+
+    if args.command == "create":
+        do_create(args.id)
 
     elif args.command == "run":
         conf = RunConfigure.from_parser(args)
