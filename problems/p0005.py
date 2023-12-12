@@ -12,6 +12,9 @@ What is the smallest positive number that is evenly divisible by all of the numb
 """
 
 
+import math
+
+
 PID = 5
 ANSWER = 232792560
 
@@ -21,9 +24,7 @@ def solve() -> int:
     result = 1
 
     for p in primes:
-        for x in range(1, 6):
-            if p**x > 20:
-                result *= p ** (x - 1)
-                break
+        x = math.floor(math.log(20, p))
+        result *= p ** x
 
     return result
