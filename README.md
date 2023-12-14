@@ -58,3 +58,44 @@ The following module level configure variables are supported:
 - `PID`: Problem ID, required.
 - `ANSWER`: Answer of the problem, optional.
 - `TIMEOUT_EXT`: Extra timeout (in milliseconds) for the problem, optional.
+
+
+## External data loading
+
+In some problems, like [problem 22](blob/main/problems/p0022.py), external data is required to
+solve the problem. The framework provides an automatic way to load external data, with the
+following steps:
+
+1.  Download external data from Project Euler website, and save it to `data` directory.
+2.  Write data loading module, store in `data` directory, with the filename exactly the same as
+    the filename of problem solution file. A method `load()` MUST BE implemented in the module, and
+    return the load data.
+    ```python
+    #!/usr/bin/env python3
+    # coding: utf-8
+    # data/example.py
+    
+    def load():
+        result = []
+        with open("data/example.txt", "r") as fd:
+            for line in fd:
+                result.append(int(line))
+    ```
+3.  In the problem solution module, import the data loading module, and call `data.load()` method to
+    load data.
+    ```python
+    #!/usr/bin/env python3
+    # coding: utf-8
+    # problems/example.py
+    
+    from data import load
+    
+    
+    PID = 0
+    ANSWER = 42
+    
+    
+    def solve():
+        data = load()
+        return sum(data)
+    ```
