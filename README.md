@@ -69,11 +69,13 @@ following steps:
 1.  Download external data from Project Euler website, and save it to `data` directory.
 2.  Write data loading module, store in `data` directory, with the filename exactly the same as
     the filename of problem solution file. A method `load()` MUST BE implemented in the module, and
-    return the load data. See example in [problem 22](data/p0022.py) and
+    return the load data. See example in [data of problem 22](data/p0022.txt) and
+    [data loader of problem 22](data/p0022.py).
     ```python
     #!/usr/bin/env python3
     # coding: utf-8
     # data/example.py
+    
     
     def load():
         result = []
@@ -81,12 +83,13 @@ following steps:
             for line in fd:
                 result.append(int(line))
     ```
-3.  In the problem solution module, import the data loading module, and call `data.load()` method to
-    load data. See example in [problem 22](problems/p0022.py) and
+3.  In the solution module of problem, import the data loading module, and call `data.load()`
+    method to load data. See example in [solution ofproblem 22](problems/p0022.py).
     ```python
     #!/usr/bin/env python3
     # coding: utf-8
     # problems/example.py
+    
     
     from data import load
     
