@@ -36,7 +36,7 @@ def is_palindrome_6(n: int) -> bool:
     return True
 
 
-def solve_in_integer() -> int:
+def solve_by_order_in_integer() -> int:
     i, j = 0, 0
     while i < 999 and j < 999:
         x, y = 999 - i, 999 - j
@@ -65,7 +65,7 @@ def is_palindrome_string(n: int) -> bool:
     return a == b
 
 
-def solve_in_string() -> int:
+def solve_by_order_in_string() -> int:
     i, j = 0, 0
     while i < 999 and j < 999:
         x, y = 999 - i, 999 - j
@@ -86,11 +86,43 @@ def solve_in_string() -> int:
 
 
 def solve_naive() -> int:
-    for i in range(999, 99, -1):
-        for j in range(999, 99, -1):
+    result = 0
+
+    for i in range(100, 1000):
+        for j in range(i, 1000):
+            n = i * j
+            if n > result and is_palindrome_string(n):
+                result = n
+
+    return result
+
+
+def solve_naive_in_list() -> int:
+    palindromes = []
+    for i in range(100, 1000):
+        for j in range(i, 1000):
             n = i * j
             if is_palindrome_string(n):
-                return n
+                palindromes.append(n)
+
+    return max(palindromes)
+
+
+def solve_naive_reverts() -> int:
+    max_j = 999
+    max_palindrome = 0
+
+    for i in range(999, 99, -1):
+        for j in range(i, 99, -1):
+            if max_palindrome != 0 and i < max_j:
+                return max_palindrome
+
+            n = i * j
+            if n > max_palindrome and is_palindrome_string(n):
+                max_j = j
+                max_palindrome = n
+
+    return None
 
 
 def palindrome_gen_n(n: int) -> Iterator[int]:
@@ -108,7 +140,7 @@ def palindrome_gen_n(n: int) -> Iterator[int]:
 
     half_n = n // 2
     size = math.ceil(n / 2)
-    x = 10 ** size - 1
+    x = 10**size - 1
     while x >= 10 ** (size - 1):
         y = 0
         for i in range(half_n):

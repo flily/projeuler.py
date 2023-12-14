@@ -38,12 +38,14 @@ class RunConfigure:
     """
 
     check: bool
+    all_correct: bool
     timeout: float
     preload: bool
     id_list: Iterable[int]
 
     def __init__(self):
         self.check = False
+        self.all_correct = False
         self.timeout = 5000.0
         self.preload = True
         self.id_list = []
@@ -55,6 +57,7 @@ class RunConfigure:
         """
         conf = RunConfigure()
         conf.check = result.check
+        conf.all_correct = result.all_correct
         conf.timeout = result.timeout
         conf.preload = not result.no_preload
         conf.id_list = result.id
@@ -85,6 +88,9 @@ def _get_parser():
     cmd_run = subparsers.add_parser("run", help="run problems")
     cmd_run.add_argument(
         "-c", "--check", action="store_true", help="check the solution answer"
+    )
+    cmd_run.add_argument(
+        "--all-correct", action="store_true", help="check all methods correct"
     )
     cmd_run.add_argument(
         "--no-preload", action="store_true", help="do not preload data"
@@ -254,7 +260,7 @@ class ProblemSolver:
         for name in self._method_names:
             yield name, self.methods[name]
 
-    def is_correct(self) -> bool:
+    def _is_correct(self) -> bool:
         """
         Is the solution correct, should have at less one correct result.
         """
@@ -267,12 +273,37 @@ class ProblemSolver:
                 continue
 
             if self.answer is not None and method.result != self.answer:
-                result = False
+                result = result or False
                 continue
 
-            result = True
+            result = result or True
 
         return result
+
+    def _is_all_correct(self) -> bool:
+        """
+        Is all methods correct.
+        """
+        for method in self.methods.values():
+            if method.is_timeout():
+                continue
+
+            if method.result is None:
+                continue
+
+            if self.answer is not None and method.result != self.answer:
+                return False
+
+        return True
+
+    def is_correct(self, all_correct: bool = False) -> bool:
+        """
+        Is the solution correct.
+        """
+        if all_correct:
+            return self._is_all_correct()
+
+        return self._is_correct()
 
     def find_best_solution(self, check: bool = False) -> str:
         """
@@ -296,7 +327,7 @@ class ProblemSolver:
 
         return best
 
-    def print(self, check: bool = False) -> str:
+    def print(self, check: bool = False, all_correct: bool = False) -> str:
         """
         Print result of a problem solver.
         """
@@ -321,7 +352,7 @@ class ProblemSolver:
             if self.timeout_ext > 0.0:
                 note = f"[+{self.timeout_ext:.2f}ms]"
             if check:
-                correct = "correct" if self.is_correct() else "wrong"
+                correct = "correct" if self.is_correct(all_correct=all_correct) else "wrong"
                 lines.insert(
                     0,
                     header
@@ -624,23 +655,29 @@ def do_run(conf: RunConfigure):
     runner = Runner()
     runner.reset_pool()
 
-    retcode = 1
-    count = 0
+    retcode = 0
+    success, count, methods = 0, 0, 0
     time_start = datetime.now()
     try:
         for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
             problem.solve(runner, conf=conf)
-            line = problem.print(check=conf.check)
-            if conf.check and not problem.is_correct():
-                retcode = 1
+            line = problem.print(check=conf.check, all_correct=conf.all_correct)
+            if conf.check:
+                if problem.is_correct(all_correct=conf.all_correct):
+                    success += 1
+                else:
+                    retcode = 1
 
             print(line)
             count += 1
+            methods += len(problem.methods)
 
         time_finish = datetime.now()
         dt = (time_finish - time_start).total_seconds()
-        print(f"Solved {count} problems solved in {dt:.3f}s")
-        retcode = 0
+        if conf.check:
+            print(f"Solved {success}/{count} problems in {dt:.3f}s")
+        else:
+            print(f"Solved {count} problems solved in {dt:.3f}s")
 
     finally:
         runner.close()
