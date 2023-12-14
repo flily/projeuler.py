@@ -12,6 +12,10 @@ Find the largest palindrome made from the product of two 3-digit numbers.
 """
 
 
+from typing import Iterator
+import math
+
+
 PID = 4
 ANSWER = 906609
 
@@ -77,5 +81,55 @@ def solve_in_string() -> int:
             j += 1
         else:
             i += 1
+
+    return None
+
+
+def solve_naive() -> int:
+    for i in range(999, 99, -1):
+        for j in range(999, 99, -1):
+            n = i * j
+            if is_palindrome_string(n):
+                return n
+
+
+def palindrome_gen_n(n: int) -> Iterator[int]:
+    """
+    Generate all palindromes below 10 ** n
+    """
+    if n <= 0:
+        yield 1
+        return
+
+    elif n == 1:
+        for x in range(2, 10):
+            yield x
+        return
+
+    half_n = n // 2
+    size = math.ceil(n / 2)
+    x = 10 ** size - 1
+    while x >= 10 ** (size - 1):
+        y = 0
+        for i in range(half_n):
+            di = (x // (10 ** (size - i - 1))) % 10
+            y += di * (10**i)
+
+        m = x * (10**half_n) + y
+        yield m
+        x -= 1
+
+
+def solve_by_generator() -> int:
+    for n in palindrome_gen_n(6):
+        # print(f"checking {n}")
+        for i in range(999, 99, -1):
+            # print(f"  - {i}")
+            if n % i != 0:
+                continue
+
+            j = n // i
+            if 100 <= j < 1000:
+                return n
 
     return None
