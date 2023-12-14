@@ -274,7 +274,7 @@ class ProblemSolver:
 
         return result
 
-    def find_best_solution(self) -> str:
+    def find_best_solution(self, check: bool = False) -> str:
         """
         Find the best solution.
         """
@@ -285,6 +285,9 @@ class ProblemSolver:
                 continue
 
             if method.result is None:
+                continue
+
+            if check and self.answer is not None and method.result != self.answer:
                 continue
 
             if cost is None or method.time_cost < cost:
@@ -304,7 +307,7 @@ class ProblemSolver:
             answer = None
         header = f"{self.pid:<5} {self.title:.<40}"
         if len(self.methods) > 1:
-            best = self.find_best_solution()
+            best = self.find_best_solution(check=check)
             total_cost = 0.0
             for name, method in self.each_methods():
                 suffix = "*BEST" if name == best else None
