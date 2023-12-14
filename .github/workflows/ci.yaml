@@ -58,4 +58,4 @@ jobs:
                 $(git ls-files '*.py')
     - name: Run on all solutions
       run: |
-        python projeuler.py run -c
+        python projeuler.py run --check --strict

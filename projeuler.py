@@ -38,14 +38,14 @@ class RunConfigure:
     """
 
     check: bool
-    all_correct: bool
+    strict: bool
     timeout: float
     preload: bool
     id_list: Iterable[int]
 
     def __init__(self):
         self.check = False
-        self.all_correct = False
+        self.strict = False
         self.timeout = 5000.0
         self.preload = True
         self.id_list = []
@@ -57,7 +57,7 @@ class RunConfigure:
         """
         conf = RunConfigure()
         conf.check = result.check
-        conf.all_correct = result.all_correct
+        conf.strict = result.strict
         conf.timeout = result.timeout
         conf.preload = not result.no_preload
         conf.id_list = result.id
@@ -90,7 +90,7 @@ def _get_parser():
         "-c", "--check", action="store_true", help="check the solution answer"
     )
     cmd_run.add_argument(
-        "--all-correct", action="store_true", help="check all methods correct"
+        "--strict", action="store_true", help="run check in strict mode, all methods MUST be correct"
     )
     cmd_run.add_argument(
         "--no-preload", action="store_true", help="do not preload data"
@@ -296,11 +296,11 @@ class ProblemSolver:
 
         return True
 
-    def is_correct(self, all_correct: bool = False) -> bool:
+    def is_correct(self, strict: bool = False) -> bool:
         """
         Is the solution correct.
         """
-        if all_correct:
+        if strict:
             return self._is_all_correct()
 
         return self._is_correct()
@@ -327,7 +327,7 @@ class ProblemSolver:
 
         return best
 
-    def print(self, check: bool = False, all_correct: bool = False) -> str:
+    def print(self, check: bool = False, strict: bool = False) -> str:
         """
         Print result of a problem solver.
         """
@@ -352,7 +352,7 @@ class ProblemSolver:
             if self.timeout_ext > 0.0:
                 note = f"[+{self.timeout_ext:.2f}ms]"
             if check:
-                correct = "correct" if self.is_correct(all_correct=all_correct) else "wrong"
+                correct = "correct" if self.is_correct(strict=strict) else "wrong"
                 lines.insert(
                     0,
                     header
@@ -661,9 +661,9 @@ def do_run(conf: RunConfigure):
     try:
         for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
             problem.solve(runner, conf=conf)
-            line = problem.print(check=conf.check, all_correct=conf.all_correct)
+            line = problem.print(check=conf.check, strict=conf.strict)
             if conf.check:
-                if problem.is_correct(all_correct=conf.all_correct):
+                if problem.is_correct(strict=conf.strict):
                     success += 1
                 else:
                     retcode = 1
