@@ -62,14 +62,14 @@ The following module level configure variables are supported:
 
 ## External data loading
 
-In some problems, like [problem 22](blob/main/problems/p0022.py), external data is required to
+In some problems, like [problem 22](problems/p0022.py), external data is required to
 solve the problem. The framework provides an automatic way to load external data, with the
 following steps:
 
 1.  Download external data from Project Euler website, and save it to `data` directory.
 2.  Write data loading module, store in `data` directory, with the filename exactly the same as
     the filename of problem solution file. A method `load()` MUST BE implemented in the module, and
-    return the load data.
+    return the load data. See example in [problem 22](data/p0022.py) and
     ```python
     #!/usr/bin/env python3
     # coding: utf-8
@@ -82,7 +82,7 @@ following steps:
                 result.append(int(line))
     ```
 3.  In the problem solution module, import the data loading module, and call `data.load()` method to
-    load data.
+    load data. See example in [problem 22](problems/p0022.py) and
     ```python
     #!/usr/bin/env python3
     # coding: utf-8
