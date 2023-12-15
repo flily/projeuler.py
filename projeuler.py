@@ -20,8 +20,8 @@ import multiprocessing
 from datetime import datetime
 from typing import (
     Callable,
-    Generator,
     Iterable,
+    Iterator,
     Mapping,
 )
 
@@ -30,6 +30,38 @@ import data
 
 
 PROBLEM_DIR = "problems"
+
+
+class ProblemId:
+    """
+    Problem ID.
+    """
+
+    pid: int
+    method: str
+
+    def __init__(self, pid: int | str):
+        if isinstance(pid, str):
+            if "." in pid:
+                pid, method = pid.split(".")
+                self.pid = int(pid)
+                self.method = method
+            else:
+                self.pid = int(pid)
+                self.method = None
+
+        elif isinstance(pid, int):
+            self.pid = pid
+            self.method = None
+
+    def __eq__(self, other: ProblemId | int) -> bool:
+        if isinstance(other, int):
+            return self.pid == other
+
+        if isinstance(other, ProblemId):
+            return self.pid == other.pid and self.method == other.method
+
+        return False
 
 
 class RunConfigure:
@@ -41,7 +73,7 @@ class RunConfigure:
     strict: bool
     timeout: float
     preload: bool
-    id_list: Iterable[int]
+    id_list: Iterable[ProblemId]
 
     def __init__(self):
         self.check = False
@@ -79,7 +111,7 @@ def _get_parser():
         "-f", "--full", action="store_true", help="show full information"
     )
     cmd_list.add_argument(
-        "id", nargs="*", type=int, help="show specific problem information"
+        "id", nargs="*", type=ProblemId, help="show specific problem information"
     )
 
     cmd_create = subparsers.add_parser("create", help="create solutions of problems")
@@ -90,7 +122,9 @@ def _get_parser():
         "-c", "--check", action="store_true", help="check the solution answer"
     )
     cmd_run.add_argument(
-        "--strict", action="store_true", help="run check in strict mode, all methods MUST be correct"
+        "--strict",
+        action="store_true",
+        help="run check in strict mode, all methods MUST be correct",
     )
     cmd_run.add_argument(
         "--no-preload", action="store_true", help="do not preload data"
@@ -99,7 +133,7 @@ def _get_parser():
         "-t", "--timeout", type=float, default=5000.0, help="timeout in milliseconds"
     )
     cmd_run.add_argument("--no-timeout", action="store_true", help="disable timeout")
-    cmd_run.add_argument("id", nargs="*", type=int, help="run specific problems")
+    cmd_run.add_argument("id", nargs="*", type=ProblemId, help="run specific problems")
 
     return parser
 
@@ -108,6 +142,11 @@ def _add_indent(s: str, indent: str) -> str:
     lines = s.split("\n")
     result = [indent + line for line in lines]
     return "\n".join(result)
+
+
+class _NotRunResult:
+    def __repr__(self) -> str:
+        return "NOT RUN"
 
 
 class _TimeoutResult:
@@ -128,11 +167,11 @@ class SolutionMethod:
         self.name = name
         self.note = note or ""
         self.time_cost = 0.0
-        self.result = _TimeoutResult()
+        self.result = _NotRunResult()
         self.finished = False
 
     def _proc_main(self, queue: multiprocessing.Queue):
-        result = _TimeoutResult()
+        result = _NotRunResult()
         time_start = time.perf_counter()
         result = self.func()
         time_finish = time.perf_counter()
@@ -253,7 +292,7 @@ class ProblemSolver:
         self._method_names.append(name)
         self.methods[name] = method
 
-    def each_methods(self) -> Generator[tuple[str, SolutionMethod], None, None]:
+    def each_methods(self) -> Iterator[tuple[str, SolutionMethod]]:
         """
         Iterate all methods.
         """
@@ -351,17 +390,14 @@ class ProblemSolver:
             note = ""
             if self.timeout_ext > 0.0:
                 note = f"[+{self.timeout_ext:.2f}ms]"
+
             if check:
                 correct = "correct" if self.is_correct(strict=strict) else "wrong"
-                lines.insert(
-                    0,
-                    header
-                    + f" {placeholder:15} {correct:10} {total_cost:10.3f}ms {note}",
-                )
+                header += f" {placeholder:15} {correct:10} {total_cost:10.3f}ms {note}"
+                lines.insert(0, header)
             else:
-                lines.insert(
-                    0, header + f" {placeholder:15} {total_cost:10.3f}ms {note}"
-                )
+                header += f" {placeholder:15} {total_cost:10.3f}ms {note}"
+                lines.insert(0, header)
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
@@ -414,7 +450,7 @@ class Job:
         if not self.preload:
             data.reset()
 
-        result = _TimeoutResult()
+        result = _NotRunResult()
         time_start = time.perf_counter()
         result = self.func()
         time_finish = time.perf_counter()
@@ -461,7 +497,7 @@ class Runner:
         job.preload = conf.preload
 
         is_timeout = False
-        result = _TimeoutResult()
+        result = _NotRunResult()
         time_start = time.perf_counter()
         get_params = {}
         if timeout > 0.0:
@@ -473,6 +509,7 @@ class Runner:
 
         except multiprocessing.TimeoutError:
             time_finish = time.perf_counter()
+            result = _TimeoutResult()
             dt = 1000.0 * (time_finish - time_start)
             self.reset_pool()
             is_timeout = True
@@ -558,14 +595,14 @@ def check_extra_data(module_name: str) -> bool:
 
 
 def find_problem_solvers(
-    dirname: str, id_list: Iterable[int] = None
-) -> Generator[ProblemSolver, None, None]:
+    dirname: str, id_list: Iterable[ProblemId] = None
+) -> Iterator[tuple[ProblemId | None, ProblemSolver]]:
     """
     Find all problem solvers in given directory.
     """
     target_dir = f"{dirname}"
 
-    id_set = set(id_list or [])
+    id_map = {pid.pid: pid for pid in (id_list or [])}
     file_list = os.listdir(target_dir)
     file_natural_list = [
         (filename, _natural_filename(filename)) for filename in file_list
@@ -585,13 +622,14 @@ def find_problem_solvers(
 
         try:
             solver = import_solver(module_name, base_name)
-            if len(id_set) > 0 and solver.pid not in id_set:
+            if len(id_map) > 0 and solver.pid not in id_map:
                 continue
 
+            pid = id_map.get(solver.pid)
             if check_extra_data(data_name):
                 solver.has_extra_data = data_name
 
-            yield solver
+            yield pid, solver
 
         except ImportError as ex:
             print(f"Failed to import {module_name}: {ex}")
@@ -600,11 +638,11 @@ def find_problem_solvers(
             print(f"Syntax error in {module_name}/{filename}: {ex}")
 
 
-def do_list(id_list: Iterable[int], full: bool):
+def do_list(id_list: Iterable[ProblemId], full: bool):
     """
     List problems.
     """
-    for problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
+    for _, problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
         print(f"{problem.pid:<5d} {problem.title}")
         if full:
             print(_add_indent(problem.content, "      "))
@@ -659,8 +697,12 @@ def do_run(conf: RunConfigure):
     success, count, methods = 0, 0, 0
     time_start = datetime.now()
     try:
-        for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
-            problem.solve(runner, conf=conf)
+        for pid, problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
+            name = None
+            if pid is not None:
+                name = pid.method
+
+            problem.solve(runner, conf=conf, name=name)
             line = problem.print(check=conf.check, strict=conf.strict)
             if conf.check:
                 if problem.is_correct(strict=conf.strict):
@@ -695,7 +737,7 @@ def main():
     if args.command == "list":
         do_list(args.id, args.full)
 
-    if args.command == "create":
+    elif args.command == "create":
         do_create(args.id)
 
     elif args.command == "run":
