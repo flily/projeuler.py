@@ -133,7 +133,7 @@ def palindrome_gen_n(n: int) -> Iterator[int]:
         yield 1
         return
 
-    elif n == 1:
+    if n == 1:
         for x in range(2, 10):
             yield x
         return
