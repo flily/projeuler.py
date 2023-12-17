@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import sys
+import ctypes
 import platform
 import inspect
 import importlib
@@ -20,6 +21,7 @@ import multiprocessing
 
 from datetime import datetime
 from typing import (
+    cast,
     Callable,
     Iterable,
     Iterator,
@@ -30,10 +32,57 @@ from typing import (
 import data
 
 
+if sys.platform == "win32":
+    from ctypes import wintypes
+    windll = ctypes.LibraryLoader(ctypes.WinDLL)
+
+
 PROBLEM_DIR = "problems"
 
 
 OUTPUT_STREAM = sys.stdout
+
+
+class _ScreenBufferInfo(ctypes.Structure):
+    # pylint: disable=too-few-public-methods, protected-access
+    _fields_ = [
+        ("dwSize", wintypes._COORD),
+        ("dwCursorPosition", wintypes._COORD),
+        ("wAttributes", wintypes.WORD),
+        ("srWindow", wintypes.SMALL_RECT),
+        ("dwMaximumWindowSize", wintypes._COORD),
+    ]
+
+
+def _win_get_curse_position(handle) -> tuple[int, int]:
+    win32api_get_screen_buffer_info = windll.kernel32.GetConsoleScreenBufferInfo
+    win32api_get_screen_buffer_info.argtypes = [
+        wintypes.HANDLE,
+        ctypes.POINTER(_ScreenBufferInfo),
+    ]
+    win32api_get_screen_buffer_info.restype = wintypes.BOOL
+
+    info = _ScreenBufferInfo()
+    win32api_get_screen_buffer_info(handle, ctypes.byref(info))
+    x = cast(int, info.dwCursorPosition.X)
+    y = cast(int, info.dwCursorPosition.Y)
+    return x, y
+
+
+IS_WINDOWS_LEGACY_TERMINAL = False
+if sys.platform == "win32":
+    _Win32APIGetStdHandle = windll.kernel32.GetStdHandle
+    _Win32APIGetStdHandle.argtypes = [wintypes.DWORD]
+    _Win32APIGetStdHandle.restype = wintypes.HANDLE
+
+    _handle = cast(wintypes.HANDLE, _Win32APIGetStdHandle(-11))
+    _x0, _ = _win_get_curse_position(_handle)
+    # print("\033[31mlorem ipsum\033[0m", end="", flush=True)
+    print("\033[D", end="", flush=True)
+    _x1, _ = _win_get_curse_position(_handle)
+    if _x1 - _x0 > 1:
+        IS_WINDOWS_LEGACY_TERMINAL = True
+        print("\b" * (_x1 - _x0), end="", flush=True)
 
 
 class ProblemId:
@@ -163,7 +212,11 @@ COLOUR_MAP = {
 
 
 def _get_colour_str(s: str, colour: str, is_tty: bool) -> str:
-    if not is_tty or platform.system() == "Windows":
+    if not is_tty:
+        return s
+
+    if platform.system() == "Windows" and IS_WINDOWS_LEGACY_TERMINAL:
+        # Legacy Windows command prompt does not support ANSI escape code
         return s
 
     if colour not in COLOUR_MAP:
@@ -537,10 +590,14 @@ class Job:
 
         result = _NotRunResult()
         time_start = time.perf_counter()
-        result = self.func()
-        time_finish = time.perf_counter()
-        dt = 1000.0 * (time_finish - time_start)
-        return result, dt
+        try:
+            result = self.func()
+            time_finish = time.perf_counter()
+            dt = 1000.0 * (time_finish - time_start)
+            return result, dt
+
+        except KeyboardInterrupt:
+            return result, 0.0
 
 
 class Runner:
@@ -806,6 +863,10 @@ def do_run(conf: RunConfigure):
             print(f"Solved {success}/{count} problems in {dt:.3f}s")
         else:
             print(f"Solved {count} problems solved in {dt:.3f}s")
+
+    except KeyboardInterrupt:
+        print("Interrupted by user")
+        retcode = 1
 
     finally:
         runner.close()
