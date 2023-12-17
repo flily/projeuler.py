@@ -39,22 +39,20 @@ if sys.platform == "win32":
 
 PROBLEM_DIR = "problems"
 
-
 OUTPUT_STREAM = sys.stdout
 
 
-class _ScreenBufferInfo(ctypes.Structure):
-    # pylint: disable=too-few-public-methods, protected-access
-    _fields_ = [
-        ("dwSize", wintypes._COORD),
-        ("dwCursorPosition", wintypes._COORD),
-        ("wAttributes", wintypes.WORD),
-        ("srWindow", wintypes.SMALL_RECT),
-        ("dwMaximumWindowSize", wintypes._COORD),
-    ]
-
-
 def _win_get_curse_position(handle) -> tuple[int, int]:
+    class _ScreenBufferInfo(ctypes.Structure):
+        # pylint: disable=too-few-public-methods, protected-access
+        _fields_ = [
+            ("dwSize", wintypes._COORD),
+            ("dwCursorPosition", wintypes._COORD),
+            ("wAttributes", wintypes.WORD),
+            ("srWindow", wintypes.SMALL_RECT),
+            ("dwMaximumWindowSize", wintypes._COORD),
+        ]
+
     win32api_get_screen_buffer_info = windll.kernel32.GetConsoleScreenBufferInfo
     win32api_get_screen_buffer_info.argtypes = [
         wintypes.HANDLE,
@@ -77,8 +75,7 @@ if sys.platform == "win32":
 
     _handle = cast(wintypes.HANDLE, _Win32APIGetStdHandle(-11))
     _x0, _ = _win_get_curse_position(_handle)
-    # print("\033[31mlorem ipsum\033[0m", end="", flush=True)
-    print("\033[D", end="", flush=True)
+    print("\033[D", end="", flush=True) # move cursor to left
     _x1, _ = _win_get_curse_position(_handle)
     if _x1 - _x0 > 1:
         IS_WINDOWS_LEGACY_TERMINAL = True
