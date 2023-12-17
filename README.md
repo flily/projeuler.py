@@ -84,7 +84,7 @@ following steps:
                 result.append(int(line))
     ```
 3.  In the solution module of problem, import the data loading module, and call `data.load()`
-    method to load data. See example in [solution ofproblem 22](problems/p0022.py).
+    method to load data. See example in [solution of problem 22](problems/p0022.py).
     ```python
     #!/usr/bin/env python3
     # coding: utf-8
