@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import sys
+import platform
 import inspect
 import importlib
 import argparse
@@ -30,6 +31,9 @@ import data
 
 
 PROBLEM_DIR = "problems"
+
+
+OUTPUT_STREAM = sys.stdout
 
 
 class ProblemId:
@@ -138,6 +142,61 @@ def _get_parser():
     return parser
 
 
+COLOUR_MAP = {
+    "black": 30,
+    "red": 31,
+    "green": 32,
+    "yellow": 33,
+    "blue": 34,
+    "magenta": 35,
+    "cyan": 36,
+    "white": 37,
+    "brightblack": 90,
+    "brightred": 91,
+    "brightgreen": 92,
+    "brightyellow": 93,
+    "brightblue": 94,
+    "brightmagenta": 95,
+    "brightcyan": 96,
+    "brightwhite": 97,
+}
+
+
+def _get_colour_str(s: str, colour: str, is_tty: bool) -> str:
+    if not is_tty or platform.system() == "Windows":
+        return s
+
+    if colour not in COLOUR_MAP:
+        return s
+
+    return f"\033[{COLOUR_MAP[colour]}m{s}\033[0m"
+
+
+class _ColourOutMeta(type):
+    """
+    Colour output meta class.
+    """
+
+    def __getattr__(cls, colour):
+        def _colour_print(s: str, is_tty: bool) -> None:
+            return _get_colour_str(s, colour, is_tty)
+
+        return _colour_print
+
+
+class ClrOut(metaclass=_ColourOutMeta):
+    """
+    Colour output.
+    """
+
+    @staticmethod
+    def write(s: str, colour: str, is_tty: bool) -> str:
+        """
+        Write a string with colour.
+        """
+        return _get_colour_str(s, colour, is_tty)
+
+
 def _add_indent(s: str, indent: str) -> str:
     lines = s.split("\n")
     result = [indent + line for line in lines]
@@ -211,7 +270,9 @@ class SolutionMethod:
         """
         return not self.finished
 
-    def print(self, title: str, suffix: str | None, answer: int = None) -> str:
+    def print(
+        self, title: str, suffix: str | None, answer: int = None, is_tty: bool = False
+    ) -> str:
         """
         Print result of this method.
         """
@@ -219,27 +280,45 @@ class SolutionMethod:
 
         if self.result is None:
             r = "NO RESULT"
+            c = "red"
         else:
             r = f"{self.result}"
+            c = None
 
-        line.append(f" {r:<15}")
+        line.append(ClrOut.write(f" {r:<15}", c, is_tty))
 
         if answer is not None:
             if self.is_timeout():
                 rc = "timeout"
+                cl = "yellow"
 
             elif self.result is None:
                 rc = "NO ANSWER"
+                cl = "yellow"
 
             elif answer == self.result:
                 rc = "correct"
+                cl = "green"
 
             else:
                 rc = "wrong"
+                cl = "red"
 
-            line.append(f" {rc:10}")
+            line.append(ClrOut.write(f" {rc:10}", cl, is_tty))
 
-        line.append(f" {self.time_cost:10.3f}ms")
+        if self.time_cost < 200.0:
+            cost_colour = "green"
+        elif self.time_cost < 500.0:
+            cost_colour = "cyan"
+        elif self.time_cost < 2000.0:
+            cost_colour = "yellow"
+        else:
+            cost_colour = "red"
+
+        if not self.result:
+            cost_colour = None
+
+        line.append(ClrOut.write(f" {self.time_cost:10.3f}ms", cost_colour, is_tty))
         if suffix is not None:
             line.append(f" {suffix}")
 
@@ -366,7 +445,9 @@ class ProblemSolver:
 
         return best
 
-    def print(self, check: bool = False, strict: bool = False) -> str:
+    def print(
+        self, check: bool = False, strict: bool = False, is_tty: bool = False
+    ) -> str:
         """
         Print result of a problem solver.
         """
@@ -382,7 +463,7 @@ class ProblemSolver:
             for name, method in self.each_methods():
                 suffix = "*BEST" if name == best else None
                 title = f"      + {method.title:.<38}"
-                line = method.print(title, suffix, answer=answer)
+                line = method.print(title, suffix, answer=answer, is_tty=is_tty)
                 lines.append(line)
                 total_cost += method.time_cost
 
@@ -392,8 +473,12 @@ class ProblemSolver:
                 note = f"[+{self.timeout_ext:.2f}ms]"
 
             if check:
-                correct = "correct" if self.is_correct(strict=strict) else "wrong"
-                header += f" {placeholder:15} {correct:10} {total_cost:10.3f}ms {note}"
+                correct = (
+                    ClrOut.green("correct   ", is_tty)
+                    if self.is_correct(strict=strict)
+                    else ClrOut.red("wrong     ", is_tty)
+                )
+                header += f" {placeholder:15} {correct} {total_cost:10.3f}ms {note}"
                 lines.insert(0, header)
             else:
                 header += f" {placeholder:15} {total_cost:10.3f}ms {note}"
@@ -401,7 +486,7 @@ class ProblemSolver:
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
-            line = method.print(header, None, answer=answer)
+            line = method.print(header, None, answer=answer, is_tty=is_tty)
             if self.timeout_ext > 0.0:
                 line += f" [+{self.timeout_ext:.2f}ms]"
             lines.append(line)
@@ -696,6 +781,7 @@ def do_run(conf: RunConfigure):
     retcode = 0
     success, count, methods = 0, 0, 0
     time_start = datetime.now()
+    is_tty = sys.stdout.isatty()
     try:
         for pid, problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
             name = None
@@ -703,7 +789,7 @@ def do_run(conf: RunConfigure):
                 name = pid.method
 
             problem.solve(runner, conf=conf, name=name)
-            line = problem.print(check=conf.check, strict=conf.strict)
+            line = problem.print(check=conf.check, strict=conf.strict, is_tty=is_tty)
             if conf.check:
                 if problem.is_correct(strict=conf.strict):
                     success += 1
