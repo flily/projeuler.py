@@ -44,7 +44,7 @@ OUTPUT_STREAM = sys.stdout
 
 def _win_get_curse_position(handle) -> tuple[int, int]:
     class _ScreenBufferInfo(ctypes.Structure):
-        # pylint: disable=too-few-public-methods, protected-access
+        # pylint: disable=too-few-public-methods, protected-access, used-before-assignment
         _fields_ = [
             ("dwSize", wintypes._COORD),
             ("dwCursorPosition", wintypes._COORD),
