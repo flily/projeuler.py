@@ -82,6 +82,8 @@ following steps:
         with open("data/example.txt", "r") as fd:
             for line in fd:
                 result.append(int(line))
+    
+        return result
     ```
 3.  In the solution module of problem, import the data loading module, and call `data.load()`
     method to load data. See example in [solution of problem 22](problems/p0022.py).
