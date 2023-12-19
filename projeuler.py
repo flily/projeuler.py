@@ -34,7 +34,9 @@ import data
 
 if sys.platform == "win32":
     from ctypes import wintypes
-    windll = ctypes.LibraryLoader(ctypes.WinDLL)
+    WIN_DLL = ctypes.LibraryLoader(ctypes.WinDLL)
+else:
+    WIN_DLL = None
 
 
 PROBLEM_DIR = "problems"
@@ -43,6 +45,9 @@ OUTPUT_STREAM = sys.stdout
 
 
 def _win_get_curse_position(handle) -> tuple[int, int]:
+    if sys.platform != "win32":
+        return 0, 0
+
     class _ScreenBufferInfo(ctypes.Structure):
         # pylint: disable=too-few-public-methods, protected-access, used-before-assignment
         _fields_ = [
@@ -53,7 +58,7 @@ def _win_get_curse_position(handle) -> tuple[int, int]:
             ("dwMaximumWindowSize", wintypes._COORD),
         ]
 
-    win32api_get_screen_buffer_info = windll.kernel32.GetConsoleScreenBufferInfo
+    win32api_get_screen_buffer_info = WIN_DLL.kernel32.GetConsoleScreenBufferInfo
     win32api_get_screen_buffer_info.argtypes = [
         wintypes.HANDLE,
         ctypes.POINTER(_ScreenBufferInfo),
@@ -69,7 +74,7 @@ def _win_get_curse_position(handle) -> tuple[int, int]:
 
 IS_WINDOWS_LEGACY_TERMINAL = False
 if sys.platform == "win32":
-    _Win32APIGetStdHandle = windll.kernel32.GetStdHandle
+    _Win32APIGetStdHandle = WIN_DLL.kernel32.GetStdHandle
     _Win32APIGetStdHandle.argtypes = [wintypes.DWORD]
     _Win32APIGetStdHandle.restype = wintypes.HANDLE
 
