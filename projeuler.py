@@ -34,6 +34,7 @@ import data
 
 if sys.platform == "win32":
     from ctypes import wintypes
+
     WIN_DLL = ctypes.LibraryLoader(ctypes.WinDLL)
 else:
     WIN_DLL = None
@@ -80,7 +81,7 @@ if sys.platform == "win32":
 
     _handle = cast(wintypes.HANDLE, _Win32APIGetStdHandle(-11))
     _x0, _ = _win_get_curse_position(_handle)
-    print("\033[D", end="", flush=True) # move cursor to left
+    print("\033[D", end="", flush=True)  # move cursor to left
     _x1, _ = _win_get_curse_position(_handle)
     if _x1 - _x0 > 1:
         IS_WINDOWS_LEGACY_TERMINAL = True
@@ -156,6 +157,25 @@ class RunConfigure:
 _default_run_configure = RunConfigure()
 
 
+class _TimeSpanInMs(float):
+    """
+    Time span in milliseconds.
+    """
+
+    def __new__(cls, value: float | str):
+        if isinstance(value, str):
+            if value.endswith("ms"):
+                value = float(value[0:-2])
+
+            elif value.endswith("s"):
+                value = float(value[0:-1]) * 1000.0
+
+            else:
+                value = float(value)
+
+        return super().__new__(cls, value)
+
+
 def _get_parser():
     parser = argparse.ArgumentParser(description="Project Euler problem runner")
 
@@ -185,7 +205,12 @@ def _get_parser():
         "--no-preload", action="store_true", help="do not preload data"
     )
     cmd_run.add_argument(
-        "-t", "--timeout", type=float, default=5000.0, help="timeout in milliseconds"
+        "-t",
+        "--timeout",
+        type=_TimeSpanInMs,
+        default=5000.0,
+        help="timeout for each method of a problem, in milliseconds, "
+        + "or with unit like 500ms, 10s, 1m",
     )
     cmd_run.add_argument("--no-timeout", action="store_true", help="disable timeout")
     cmd_run.add_argument("id", nargs="*", type=ProblemId, help="run specific problems")
