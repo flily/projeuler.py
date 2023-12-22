@@ -119,6 +119,12 @@ class ProblemId:
 
         return False
 
+    def problem_name(self) -> str:
+        """
+        Get the filename of this problem.
+        """
+        return f"p{self.pid:04d}"
+
 
 class RunConfigure:
     """
@@ -720,12 +726,16 @@ def import_solver(module_name: str, base_name: str) -> ProblemSolver:
     Import a problem solver.
     """
     mod = importlib.import_module(f"{module_name}")
-    required_attrs = ["PID"]
-    for attr in required_attrs:
-        if not hasattr(mod, attr):
-            raise RuntimeError(f"Missing attribute {attr} in {module_name}")
+    try:
+        pid = int(base_name[1:])
 
-    solver = ProblemSolver(mod.PID, base_name)
+    except ValueError as ex:
+        raise ValueError(
+            f"Invalid problem name: '{base_name}', "
+            + "should be pXXXX which XXXX is a number"
+        ) from ex
+
+    solver = ProblemSolver(pid, base_name)
     solver.set_document(mod.__doc__)
 
     if hasattr(mod, "ANSWER"):
@@ -772,7 +782,11 @@ def find_problem_solvers(
     target_dir = f"{dirname}"
 
     id_map = {pid.pid: pid for pid in (id_list or [])}
-    file_list = os.listdir(target_dir)
+    if id_list is not None and len(id_list) > 0:
+        file_list = [f"{pid.problem_name()}.py" for pid in id_list]
+    else:
+        file_list = os.listdir(target_dir)
+
     file_natural_list = [
         (filename, _natural_filename(filename)) for filename in file_list
     ]

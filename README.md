@@ -20,10 +20,15 @@ Show problems solved, show full problem content  with argument `-f` or `--full`.
 Run specified problem solutions. Check answer, if a non-none value is given, with argument `-c` or
 `--check`.
 
+### Command `create`
+
+Create a new problem solution template.
+
+
 ## Solution structure
 
-Each problem solution is a python module in `problems` directory. Only two module level variables
-`PID` for problem ID and `ANSWER` for answer of the problem.
+Each problem solution is a python module in `problems` directory, and filename MUST BE format like
+`pXXXX.py`. Module level variable `PID` is legacy used to identify the problem, and no longer used.
 
 Solver method functions MUST BE defined at less one, whose function name is `solve` or starts with
 `solve_`. All solver method will be run to evaluate, and at least one solver method function
@@ -55,7 +60,7 @@ def solve_method_2():
 ```
 
 The following module level configure variables are supported:
-- `PID`: Problem ID, required.
+- `PID`: Problem ID, legacy used to identify the problem, and no longer used.
 - `ANSWER`: Answer of the problem, optional.
 - `TIMEOUT_EXT`: Extra timeout (in milliseconds) for the problem, optional.
 
