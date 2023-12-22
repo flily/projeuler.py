@@ -9,9 +9,6 @@ Data of problem 22.
 
 
 def load():
-    """
-    Load the data of problem 22.
-    """
     with open("data/p0022.txt", encoding="utf-8") as f:
         raw = f.read()
 

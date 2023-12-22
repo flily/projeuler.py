@@ -8,9 +8,6 @@ Load data of problem 67 from file.
 
 
 def load():
-    """
-    Load the triangle data from file.
-    """
     result = []
     with open("data/p0067.txt", encoding="utf-8") as f:
         for line in f:
