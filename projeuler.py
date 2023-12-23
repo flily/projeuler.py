@@ -845,23 +845,22 @@ def do_create(id_list: Iterable[int]):
 
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(
-                f"#!/usr/bin/env python3\n"
-                f"# coding: utf-8\n"
-                f"\n"
-                f"\n"
-                f'"""\n'
-                f"Problem title\n"
-                f"\n"
-                f"Problem description\n"
-                f'"""\n'
-                f"\n"
-                f"\n"
-                f"PID = {pid}\n"
-                f"ANSWER = None\n"
-                f"\n"
-                f"\n"
-                f"def solve() -> int:\n"
-                f"    return 0\n"
+                "#!/usr/bin/env python3\n"
+                "# coding: utf-8\n"
+                "\n"
+                "\n"
+                '"""\n'
+                "Problem title\n"
+                "\n"
+                "Problem description\n"
+                '"""\n'
+                "\n"
+                "\n"
+                "ANSWER = None\n"
+                "\n"
+                "\n"
+                "def solve() -> int:\n"
+                "    return 0\n"
             )
 
 

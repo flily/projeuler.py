@@ -41,7 +41,6 @@ If `ANSWER` is `None` or not presented, the solution will not be checked.
 # coding: utf-8
 
 
-PID = 1
 ANSWER = 42
 
 
@@ -101,7 +100,6 @@ following steps:
     from data import load
     
     
-    PID = 0
     ANSWER = 42
     
     
