@@ -1,6 +1,9 @@
 # projeuler.py
 
 [![Check](https://github.com/flily/projeuler.py/actions/workflows/ci.yaml/badge.svg)](https://github.com/flily/projeuler.py/actions/workflows/ci.yaml)
+
+![GitHub License](https://img.shields.io/github/license/flily/projeuler.py)
+![GitHub top language](https://img.shields.io/github/languages/top/flily/projeuler.py)
 ![GitHub repo file count (file extension)](https://img.shields.io/github/directory-file-count/flily/projeuler.py/problems?label=Solved)
 
 Code solutions for Project Euler problems
