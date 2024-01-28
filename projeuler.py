@@ -373,24 +373,27 @@ class SolutionMethod:
 
         line.append(ClrOut.write(f" {r:<15}", c, is_tty))
 
-        if answer is not None:
-            if self.is_timeout():
-                rc = "timeout"
-                cl = "yellow"
+        if answer is None:
+            rc = "unknown"
+            cl = "yellow"
 
-            elif self.result is None:
-                rc = "NO ANSWER"
-                cl = "yellow"
+        elif self.is_timeout():
+            rc = "timeout"
+            cl = "yellow"
 
-            elif answer == self.result:
-                rc = "correct"
-                cl = "green"
+        elif self.result is None:
+            rc = "NO ANSWER"
+            cl = "yellow"
 
-            else:
-                rc = "wrong"
-                cl = "red"
+        elif answer == self.result:
+            rc = "correct"
+            cl = "green"
 
-            line.append(ClrOut.write(f" {rc:10}", cl, is_tty))
+        else:
+            rc = "wrong"
+            cl = "red"
+
+        line.append(ClrOut.write(f" {rc:10}", cl, is_tty))
 
         if self.time_cost < 200.0:
             cost_colour = "green"
