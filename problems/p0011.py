@@ -69,21 +69,17 @@ def solve() -> int:
     for i in range(20):
         for j in range(17):
             r1 = GRID[i][j] * GRID[i][j + 1] * GRID[i][j + 2] * GRID[i][j + 3]
-            if r1 > result:
-                result = r1
+            result = max(result, r1)
 
             r2 = GRID[j][i] * GRID[j + 1][i] * GRID[j + 2][i] * GRID[j + 3][i]
-            if r2 > result:
-                result = r2
+            result = max(result, r2)
 
     for i in range(17):
         for j in range(17):
             r1 = GRID[i][j] * GRID[i + 1][j + 1] * GRID[i + 2][j + 2] * GRID[i + 3][j + 3]
-            if r1 > result:
-                result = r1
+            result = max(result, r1)
 
             r2 = GRID[i][19 - j] * GRID[i + 1][18 - j] * GRID[i + 2][17 - j] * GRID[i + 3][16 - j]
-            if r2 > result:
-                result = r2
+            result = max(result, r2)
 
     return result

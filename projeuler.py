@@ -35,8 +35,10 @@ import data
 if sys.platform == "win32":
     from ctypes import wintypes
 
+    ON_WINDOWS = True
     WIN_DLL = ctypes.LibraryLoader(ctypes.WinDLL)
 else:
+    ON_WINDOWS = False
     WIN_DLL = None
 
 
@@ -46,7 +48,7 @@ OUTPUT_STREAM = sys.stdout
 
 
 def _win_get_curse_position(handle) -> tuple[int, int]:
-    if sys.platform != "win32":
+    if not ON_WINDOWS:
         return 0, 0
 
     class _ScreenBufferInfo(ctypes.Structure):

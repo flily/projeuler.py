@@ -77,8 +77,7 @@ def solve_naive() -> int:
         str_slice = N[i : i + 13]
         int_slice = [int(x) for x in str_slice]
         p = product(*int_slice)
-        if p > largest:
-            largest = p
+        largest = max(largest, p)
 
     return largest
 
@@ -91,8 +90,7 @@ def solve_with_buffer() -> int:
         buffer.pop(0)
         buffer.append(int(N[i]))
         p = product(*buffer)
-        if p > largest:
-            largest = p
+        largest = max(largest, p)
 
         i += 1
 
@@ -106,8 +104,7 @@ def solve_with_buffer_no_append() -> int:
     while i < len(N):
         buffer[j] = int(N[i])
         p = product(*buffer)
-        if p > largest:
-            largest = p
+        largest = max(largest, p)
 
         i += 1
         j += 1

@@ -156,23 +156,30 @@ class Hands:
 
         return True, self.cards[-1]
 
-    def get_rank(self) -> Iterable[tuple[int, Card]]:
-        """
-        Check the rank of the hand.
-        """
+    def _is_flush_or_straight(self) -> tuple[bool, Iterable[tuple[int, Card]]]:
         is_flush, flush_value = self._is_flush()
         is_straight, straight_value = self._is_straight()
         if is_flush is not None and is_straight:
             if straight_value.value == Card.Ace:
-                return [(Hands.RoyalFlush, flush_value)]
+                return True, [(Hands.RoyalFlush, flush_value)]
 
-            return [(Hands.StraightFlush, straight_value)]
+            return True, [(Hands.StraightFlush, straight_value)]
 
         if is_straight:
-            return [(Hands.Straight, straight_value)]
+            return True, [(Hands.Straight, straight_value)]
 
         if is_flush:
-            return [(Hands.Flush, x) for x in self.cards]
+            return True, [(Hands.Flush, x) for x in self.cards]
+
+        return False, []
+
+    def get_rank(self) -> Iterable[tuple[int, Card]]:
+        """
+        Check the rank of the hand.
+        """
+        is_flush_or_straight, result = self._is_flush_or_straight()
+        if is_flush_or_straight:
+            return result
 
         result = []
         value_map = {}
