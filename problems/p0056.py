@@ -34,7 +34,6 @@ def solve() -> int:
         for b in range(2, 100):
             n = a**b
             s = digit_sum(n)
-            if s > result:
-                result = s
+            result = max(result, s)
 
     return result

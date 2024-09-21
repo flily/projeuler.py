@@ -79,7 +79,6 @@ def solve_naive() -> int:
         if digits == 9:
             p = concatencated_product(*nums)
             if is_pandigital_9(p):
-                if p > result:
-                    result = p
+                result = max(result, p)
 
     return result

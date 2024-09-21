@@ -618,7 +618,7 @@ class Job:
         self.module_name = module_name
         self.preload = True
 
-    def run(self) -> (int, float):
+    def run(self) -> tuple[int, float]:
         """
         Run function
         """
