@@ -137,6 +137,7 @@ class RunConfigure:
     strict: bool
     timeout: float
     preload: bool
+    debug: bool
     id_list: Iterable[ProblemId]
 
     def __init__(self):
@@ -144,6 +145,7 @@ class RunConfigure:
         self.strict = False
         self.timeout = 5000.0
         self.preload = True
+        self.debug = False
         self.id_list = []
 
     @staticmethod
@@ -157,6 +159,7 @@ class RunConfigure:
         conf.timeout = result.timeout
         conf.preload = not result.no_preload
         conf.id_list = result.id
+        conf.debug = result.debug
         if result.no_timeout:
             conf.timeout = 0.0
         return conf
@@ -205,6 +208,7 @@ def _get_parser():
         "-c", "--check", action="store_true", help="check the solution answer"
     )
     cmd_run.add_argument(
+        "-s",
         "--strict",
         action="store_true",
         help="run check in strict mode, all methods MUST be correct",
@@ -220,7 +224,12 @@ def _get_parser():
         help="timeout for each method of a problem, in milliseconds, "
         + "or with unit like 500ms, 10s, 1m",
     )
-    cmd_run.add_argument("--no-timeout", action="store_true", help="disable timeout")
+    cmd_run.add_argument("-o", "--no-timeout", action="store_true", help="disable timeout")
+    cmd_run.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="debug mode, timeout will be disabled in debug mode",)
     cmd_run.add_argument("id", nargs="*", type=ProblemId, help="run specific problems")
 
     return parser
@@ -647,6 +656,7 @@ class Runner:
 
     def __init__(self):
         self.pool = None
+        self.debug = False
 
     def close(self) -> None:
         """
@@ -667,11 +677,11 @@ class Runner:
             "", _return_zero, _default_run_configure
         )  # warm up worker process
 
-    def run_func(
-        self, name: str, func, conf: RunConfigure, timeout: float = 0.0
+    def run_func_in_process(
+        self, name: str, func: Callable[[], int], conf: RunConfigure, timeout: float = 0.0
     ) -> tuple[int, bool, float]:
         """
-        Run a function.
+        Run a function in process.
         """
         job = Job(name, func)
         job.preload = conf.preload
@@ -695,6 +705,18 @@ class Runner:
             is_timeout = True
 
         return result, is_timeout, dt
+
+    def run_func(
+        self, name: str, func: Callable[[], int], conf: RunConfigure, timeout: float = 0.0
+    ) -> tuple[int, bool, float]:
+        if not self.debug:
+            return self.run_func_in_process(name, func, conf, timeout)
+
+        time_start = time.perf_counter()
+        result = func()
+        time_finish = time.perf_counter()
+        dt = 1000.0 * (time_finish - time_start)
+        return result, False, dt
 
 
 def _natural_filename(filename: str) -> Iterable[str | int]:
@@ -869,15 +891,12 @@ def do_create(id_list: Iterable[int]):
             )
 
 
-def _return_zero() -> int:
-    return 0
-
-
 def do_run(conf: RunConfigure):
     """
     Run problems.
     """
     runner = Runner()
+    runner.debug = conf.debug
     runner.reset_pool()
 
     retcode = 0
