@@ -120,12 +120,12 @@ def solve_naive() -> int:
 
 
 def find_prime_pair_set(
-        prime_pairs: set[int], 
+        prime_pairs: set[int],
         primes: list[int],
         current: list[int],
         length: int,
         index: int,
-    ) -> Generator[list[int]]:
+    ) -> Generator[list[int], None, None]:
     """
     Find prime pair set.
     """
@@ -143,8 +143,7 @@ def find_prime_pair_set(
                 break
 
         if found:
-            for x in find_prime_pair_set(prime_pairs, primes, current + [p], length, i + 1):
-                yield x
+            yield from find_prime_pair_set(prime_pairs, primes, current + [p], length, i + 1)
 
         i += 1
 
