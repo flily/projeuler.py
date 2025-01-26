@@ -21,7 +21,7 @@ import itertools
 
 
 ANSWER = 26033
-TIMEOUT_EXT = 1000
+TIMEOUT_EXT = 4000.0
 
 TOTAL_NUMS = 5
 

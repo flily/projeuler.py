@@ -43,6 +43,7 @@ else:
 
 
 PROBLEM_DIR = "problems"
+DEFAULT_TIMEOUT = 2000.0
 
 OUTPUT_STREAM = sys.stdout
 
@@ -143,7 +144,7 @@ class RunConfigure:
     def __init__(self):
         self.check = False
         self.strict = False
-        self.timeout = 5000.0
+        self.timeout = DEFAULT_TIMEOUT
         self.preload = True
         self.debug = False
         self.id_list = []
@@ -220,7 +221,7 @@ def _get_parser():
         "-t",
         "--timeout",
         type=_TimeSpanInMs,
-        default=5000.0,
+        default=DEFAULT_TIMEOUT,
         help="timeout for each method of a problem, in milliseconds, "
         + "or with unit like 500ms, 10s, 1m",
     )
