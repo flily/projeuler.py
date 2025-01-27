@@ -77,7 +77,7 @@ def solve_sieve_with_iterate() -> int:
     return s
 
 
-def solve_sieve_with_slice() -> int:
+def solve_sieve_with_slice_range() -> int:
     sieve = [True] * MAX_NUM
     sieve[0] = sieve[1] = False
     s = 0
@@ -85,5 +85,21 @@ def solve_sieve_with_slice() -> int:
         if is_prime:
             s += i
             sieve[i * i:MAX_NUM:i] = [False] * len(range(i * i, MAX_NUM, i))
+
+    return s
+
+
+def solve_sieve_with_slice_calc() -> int:
+    sieve = [True] * MAX_NUM
+    sieve[0] = sieve[1] = False
+    s = 0
+    for i, is_prime in enumerate(sieve):
+        if is_prime:
+            s += i
+            m = MAX_NUM - (i * i)
+            n = m // i
+            if m % i != 0:
+                n += 1
+            sieve[i * i:MAX_NUM:i] = [False] * n
 
     return s

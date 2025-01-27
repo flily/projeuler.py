@@ -31,6 +31,8 @@ from typing import Iterator
 
 ANSWER = 26241
 
+TIMEOUT_EXT = 1000.0
+
 
 def is_prime(n: int) -> bool:
     """
