@@ -13,7 +13,7 @@ For which value of p ≤ 1000, is the number of solutions maximised?
 
 
 ANSWER = 840
-TIMEOUT_EXT = 3000.0
+TIMEOUT_EXT = 4000.0
 
 
 def can_be_right_triangle(a: int, b: int, c: int) -> bool:

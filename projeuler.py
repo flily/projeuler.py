@@ -503,6 +503,7 @@ class ProblemSolver:
         """
         Is all methods correct.
         """
+        has_correct = False
         for method in self.methods.values():
             if method.is_timeout():
                 continue
@@ -513,7 +514,9 @@ class ProblemSolver:
             if self.answer is not None and method.result != self.answer:
                 return False
 
-        return True
+            has_correct = True
+
+        return has_correct
 
     def is_correct(self, strict: bool = False) -> bool:
         """
