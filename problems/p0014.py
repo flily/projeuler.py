@@ -70,7 +70,7 @@ def solve_naive() -> int:
     return result
 
 
-class CollatzCache:
+class CollatzCacheMap:
     """
     Cache for Collatz sequences.
     """
@@ -101,8 +101,59 @@ class CollatzCache:
         return result
 
 
-def solve_with_cache() -> int:
-    cache = CollatzCache()
+def solve_with_cache_map() -> int:
+    cache = CollatzCacheMap()
+    result, count = 1, 1
+    n = 1
+    while n < MAX_NUM:
+        c = cache.calc_length(n)
+        if c > count:
+            result = n
+            count = c
+
+        n += 1
+
+    return result
+
+
+class CollatzCacheList:
+    """
+    Cache for Collatz sequences.
+    """
+    cache: list[int | None]
+
+    def __init__(self, max_size: int):
+        self.max_size = max_size
+        self.cache = [None] * max_size
+        self.cache[0] = 1
+        self.cache[1] = 1
+        self.cache[2] = 2
+        self.cache[3] = 9
+        self.cache[4] = 4
+
+    def calc_length(self, n: int) -> int:
+        """
+        Get the size of the Collatz sequence starting at n.
+        """
+        m = n
+        result = 1
+        while m > 1:
+            if m < self.max_size and self.cache[m] is not None:
+                result += self.cache[m]
+                break
+
+            result += 1
+            if m % 2 == 0:
+                m = m // 2
+            else:
+                m = (3 * m) + 1
+
+        self.cache[n] = result
+        return result
+
+
+def solve_with_cache_list() -> int:
+    cache = CollatzCacheList(MAX_NUM + 1)
     result, count = 1, 1
     n = 1
     while n < MAX_NUM:
