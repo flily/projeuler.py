@@ -153,7 +153,9 @@ def find_position_list(nums: list[int], num_sets: list[set[int]]) -> int:
     return result
 
 
-def find_cyclic(nums: list[int], num_sets: list[set[int]], prev: list[int] = None) -> Generator[list[int], None, None]:
+def find_cyclic(
+        nums: list[int], num_sets: list[set[int]], prev: list[int] | None = None
+    ) -> Generator[list[int], None, None]:
     """
     Find cyclic numbers.
     """
@@ -162,7 +164,7 @@ def find_cyclic(nums: list[int], num_sets: list[set[int]], prev: list[int] = Non
 
     if len(prev) == len(num_sets):
         if prev[0] // 100 == prev[-1] % 100:
-            print(f"found cyclic: {prev}")
+            # print(f"found cyclic: {prev}")
             yield prev
         return
 
