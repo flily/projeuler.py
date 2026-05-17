@@ -60,4 +60,4 @@ jobs:
                 $(git ls-files '*.py')
     - name: Run on all solutions
       run: |
-        python projeuler.py run --check --strict
+        python projeuler.py run --check --strict --colour

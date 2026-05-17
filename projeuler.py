@@ -136,6 +136,7 @@ class RunConfigure:
 
     check: bool
     strict: bool
+    colour: str
     timeout: float
     preload: bool
     debug: bool
@@ -157,6 +158,7 @@ class RunConfigure:
         conf = RunConfigure()
         conf.check = result.check
         conf.strict = result.strict
+        conf.colour = result.colour
         conf.timeout = result.timeout
         conf.preload = not result.no_preload
         conf.id_list = result.id
@@ -213,6 +215,11 @@ def _get_parser():
         "--strict",
         action="store_true",
         help="run check in strict mode, all methods MUST be correct",
+    )
+    cmd_run.add_argument(
+        "--colour", "--color",
+        action="store_true",
+        help="force colour output, even if not in TTY",
     )
     cmd_run.add_argument(
         "--no-preload", action="store_true", help="do not preload data"
@@ -906,7 +913,7 @@ def do_run(conf: RunConfigure):
     retcode = 0
     success, count, methods = 0, 0, 0
     time_start = datetime.now()
-    is_tty = sys.stdout.isatty()
+    is_tty = sys.stdout.isatty() or conf.colour
     try:
         for pid, problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
             name = None
