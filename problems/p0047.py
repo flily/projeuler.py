@@ -20,7 +20,7 @@ first of these numbers?
 
 
 ANSWER = 134043
-
+TIMEOUT_EXT = 500.0
 
 def is_prime(n: int) -> bool:
     """

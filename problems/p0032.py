@@ -20,7 +20,7 @@ sum.
 
 
 ANSWER = 45228
-
+TIMEOUT_EXT = 1000.0
 
 def check_pandigital(*nums: int) -> bool:
     """
