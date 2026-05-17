@@ -43,7 +43,7 @@ else:
 
 
 PROBLEM_DIR = "problems"
-DEFAULT_TIMEOUT = 2000.0
+DEFAULT_TIMEOUT = 1000.0
 
 OUTPUT_STREAM = sys.stdout
 

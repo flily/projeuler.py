@@ -30,6 +30,7 @@ from typing import Mapping
 
 
 ANSWER = -59231
+TIMEOUT_EXT = 1000
 
 
 def is_prime(n: int) -> bool:
