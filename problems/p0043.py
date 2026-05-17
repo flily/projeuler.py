@@ -25,6 +25,7 @@ import itertools
 
 
 ANSWER = 16695334890
+TIMEOUT_EXT = 1000.0
 
 
 PRIMES = [2, 3, 5, 7, 11, 13, 17]

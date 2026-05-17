@@ -22,6 +22,7 @@ from typing import Iterable, Iterator
 
 
 ANSWER = 121313
+TIMEOUT_EXT = 1000.0
 
 
 def is_prime(n: int) -> bool:
