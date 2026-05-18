@@ -49,9 +49,6 @@ def is_circular_prime(n: int) -> bool:
     if not is_prime(n):
         return False
 
-    if n < 10:
-        return True
-
     size = math.floor(math.log10(n)) + 1
     for _ in range(size):
         d = n % 10
@@ -92,6 +89,32 @@ def solve_with_even_filter() -> int:
     result = 13
     for n in range(3, 7):
         d = find_circular_prime_with_n_digits(n)
+        result += d
+
+    return result
+
+
+def find_circular_prime_with_n_digits_opt(n: int) -> int:
+    """
+    Find circular primes with n digits
+    """
+    result = 0
+    digits = [[1, 3, 7, 9]] * n
+    for d in itertools.product(*digits):
+        m = 0
+        for i in range(n):
+            m += d[i] * (10 ** (n - i - 1))
+
+        if is_circular_prime(m):
+            result += 1
+
+    return result
+
+
+def solve_with_filter() -> int:
+    result = 13
+    for n in range(3, 7):
+        d = find_circular_prime_with_n_digits_opt(n)
         result += d
 
     return result
