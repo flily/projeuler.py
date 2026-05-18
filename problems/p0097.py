@@ -21,3 +21,14 @@ ANSWER = 8739992577
 
 def solve() -> int:
     return (28433 * (2 ** 7830457) + 1) % 10**10
+
+
+def solve_by_mod() -> int:
+    result = 1
+    m = 10_000_000_000
+
+    for _ in range (7830457):
+        result = (result * 2) % m
+
+    result = (result * 28433 + 1) % m
+    return result
