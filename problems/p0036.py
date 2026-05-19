@@ -86,7 +86,7 @@ def solve_by_generator() -> int:
     result = 0
     for i in range(7):
         for n in palindrome_gen_n(i):
-            if is_palindrome_10(n) and is_palindrome_2(n):
+            if is_palindrome_2(n):
                 result += n
 
     return result

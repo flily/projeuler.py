@@ -13,7 +13,6 @@ For which value of p ≤ 1000, is the number of solutions maximised?
 
 
 ANSWER = 840
-TIMEOUT_EXT = 6000.0
 
 
 def can_be_right_triangle(a: int, b: int, c: int) -> bool:
@@ -83,12 +82,52 @@ def find_right_triangle_solutions_in_order(p: int) -> int:
     return result
 
 
-def solve_in_order_generator() -> int:
+def solve_order_generator() -> int:
     result, count = 0, 0
     for n in range(1, 1001):
         c = find_right_triangle_solutions_in_order(n)
         if c > count:
             result = n
+            count = c
+
+    return result
+
+
+def find_right_triangle_solutions_by_euclid_formula(max_p: int) -> dict[int, int]:
+    """
+    Find the number of solutions for p.
+    """
+    result = {}
+    for n in range(1, max_p // 2):
+        for m in range(n + 1, max_p // n):
+            a = m * m - n * n
+            b = 2 * m * n
+            c = m * m + n * n
+            p = a + b + c
+            if p > max_p:
+                break
+
+            if a < b:
+                a, b = b, a
+
+            k = 1
+            while k * p <= max_p:
+                np = k * p
+                if np not in result:
+                    result[np] = set()
+
+                result[np].add((k*a, k*b, k*c))
+                k += 1
+
+    return result
+
+def solve_euclid_formula() -> int:
+    results = find_right_triangle_solutions_by_euclid_formula(1000)
+    result, count = 0, 0
+    for p, solutions in results.items():
+        c = len(solutions)
+        if c > count:
+            result = p
             count = c
 
     return result
