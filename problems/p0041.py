@@ -28,15 +28,11 @@ def is_pandigit(n: int) -> bool:
 
     while n > 0:
         d = n % 10
-        if d == 0 or digits[d]:
+        if d == 0 or digits[d] or d > size:
             return False
 
         digits[d] = True
         n //= 10
-
-    for i in range(1, size):
-        if not digits[i]:
-            return False
 
     return True
 

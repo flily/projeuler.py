@@ -76,10 +76,15 @@ def is_truncatable_prime(n: int) -> bool:
 
 
 def solve_naive() -> int:
+    count = 0
     result = 0
-    for i in range(10, 1_000_000):
+
+    i = 11
+    while count < 11:
         if is_truncatable_prime(i):
             result += i
+            count += 1
+        i += 2
 
     return result
 

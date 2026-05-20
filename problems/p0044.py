@@ -45,12 +45,60 @@ def solve_naive() -> int:
     j = 2
     while True:
         pj = pentagonal(j)
-        k = 1
-        while k < j:
+        for k in range(1, j):
             pk = pentagonal(k)
             if is_pentagonal(pj + pk) and is_pentagonal(pj - pk):
+                # find the only answer.
                 return pj - pk
 
-            k += 1
-
         j += 1
+
+
+def solve_search_larger() -> int:
+    max_n = 3000
+
+    p_list = [pentagonal(i) for i in range(max_n)]
+    p_set = set(p_list)
+
+    min_d = p_list[-1]
+    found = False
+    for j in range(1, max_n):
+        pj = p_list[j]
+
+        for k in range(j + 1, max_n):
+            pk = p_list[k]
+            d = pk - pj
+            if d in p_set and (pk + pj) in p_set:
+                min_d = d
+                found = True    # find the only answer.
+                break
+
+        if found:
+            break
+
+    return min_d
+
+
+def solve_search_less() -> int:
+    max_n = 3000
+
+    p_list = [pentagonal(i) for i in range(max_n)]
+    p_set = set(p_list)
+
+    min_d = p_list[-1]
+    found = False
+    for j in range(1, max_n):
+        pj = p_list[j]
+
+        for k in range(1, j):
+            pk = p_list[k]
+            d = pj - pk
+            if d in p_set and (pj + pk) in p_set:
+                min_d = d
+                found = True    # find the only answer.
+                break
+
+        if found:
+            break
+
+    return min_d

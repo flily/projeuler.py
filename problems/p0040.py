@@ -48,7 +48,7 @@ def d(n: int) -> int:
 
 def solve() -> int:
     result = 1
-    indexes = [1, 10, 100, 1000, 10000, 100000, 1000000]
+    indexes = [1, 10, 100, 1000, 10_000, 100_000, 1_000_000]
     for x in indexes:
         y = d(x)
         result *= y
