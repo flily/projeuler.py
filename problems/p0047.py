@@ -20,7 +20,6 @@ first of these numbers?
 
 
 ANSWER = 134043
-TIMEOUT_EXT = 500.0
 
 
 def is_prime(n: int) -> bool:
@@ -81,6 +80,95 @@ def solve_naive() -> int:
     return n - 3
 
 
+def remove_factor(n: int, f: int) -> int:
+    while n % f == 0:
+        n //= f
+
+    return n
+
+
+def find_prime_factors_remove_factor(n: int) -> set[int]:
+    result = set()
+    m = n
+    if m % 2 == 0:
+        result.add(2)
+        m = remove_factor(m, 2)
+
+    i = 3
+    while i * i <= n:
+        if n % i == 0:
+            if is_prime(i):
+                result.add(i)
+                m = remove_factor(m, i)
+
+        i += 2
+
+    if m > 1:
+        result.add(m)
+
+    return result
+
+
+def solve_remove_factor() -> int:
+    n = 647
+    c = 0
+
+    while True:
+        pfs = find_prime_factors_remove_factor(n)
+        if len(pfs) == 4:
+            c += 1
+        else:
+            c = 0
+
+        if c == 4:
+            break
+
+        n += 1
+
+    return n - 3
+
+
+def find_prime_factors_count_only(n: int) -> set[int]:
+    result = 0
+    m = n
+    if m % 2 == 0:
+        result += 1
+        m = remove_factor(m, 2)
+
+    i = 3
+    while i * i <= n:
+        if n % i == 0:
+            if is_prime(i):
+                result += 1
+                m = remove_factor(m, i)
+
+        i += 2
+
+    if m > 1:
+        result += 1
+
+    return result
+
+
+def solve_count_only() -> int:
+    n = 647
+    c = 0
+
+    while True:
+        pfs_count = find_prime_factors_count_only(n)
+        if pfs_count == 4:
+            c += 1
+        else:
+            c = 0
+
+        if c == 4:
+            break
+
+        n += 1
+
+    return n - 3
+
+
 def build_primes_list(max_prime: int) -> list[int]:
     result = [2, 3, 5, 7, 11, 13, 17, 19]
 
@@ -103,30 +191,32 @@ def build_primes_list(max_prime: int) -> list[int]:
     return result
 
 
-def find_prime_factors_count_with_prime_set(primes: list[int], n: int) -> int:
+def find_prime_factors_count_with_prime_list(primes: list[int], n: int) -> int:
     result = 0
+    m = n
 
     for p in primes:
-        if p * 2 > n:
+        if p * p > m:
             break
 
         if n % p == 0:
             result += 1
+            m = remove_factor(m, p)
 
-    if result <= 0:
-        result = 1
+    if m > 1:
+        result += 1
 
     return result
 
 
-def solve_prime_set() -> int:
+def solve_prime_list() -> int:
     n = 647
     c = 0
 
     primes = build_primes_list(1000)
 
     while True:
-        pfs_count = find_prime_factors_count_with_prime_set(primes, n)
+        pfs_count = find_prime_factors_count_with_prime_list(primes, n)
 
         if pfs_count == 4:
             c += 1
@@ -139,4 +229,3 @@ def solve_prime_set() -> int:
         n += 1
 
     return n - 3
-
