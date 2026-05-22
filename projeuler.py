@@ -243,6 +243,16 @@ def _get_parser():
     return parser
 
 
+#               Black   Red     Green   Yellow  Blue    Magenta Cyan    White
+# Normal        30      31      32      33      34      35      36      37
+# Normal Bg     40      41      42      43      44      45      46      47
+# Bright        90      91      92      93      94      95      96      97
+# Bright Bg     100     101     102     103     104     105     106     107
+
+#               Normal  Bold    Underline
+# Style         0       1       4
+
+
 COLOUR_MAP = {
     "black": 30,
     "red": 31,
@@ -252,6 +262,14 @@ COLOUR_MAP = {
     "magenta": 35,
     "cyan": 36,
     "white": 37,
+    "on_black": 40,
+    "on_red": 41,
+    "on_green": 42,
+    "on_yellow": 43,
+    "on_blue": 44,
+    "on_magenta": 45,
+    "on_cyan": 46,
+    "on_white": 47,
     "brightblack": 90,
     "brightred": 91,
     "brightgreen": 92,
@@ -260,6 +278,14 @@ COLOUR_MAP = {
     "brightmagenta": 95,
     "brightcyan": 96,
     "brightwhite": 97,
+    "on_brightblack": 100,
+    "on_brightred": 101,
+    "on_brightgreen": 102,
+    "on_brightyellow": 103,
+    "on_brightblue": 104,
+    "on_brightmagenta": 105,
+    "on_brightcyan": 106,
+    "on_brightwhite": 107
 }
 
 
@@ -276,6 +302,100 @@ def _get_colour_str(s: str, colour: str, is_tty: bool) -> str:
 
     return f"\033[{COLOUR_MAP[colour]}m{s}\033[0m"
 
+
+class _StyleMeta(type):
+    """
+    Style meta class.
+    """
+    def __getattr__(cls, style):
+        def _make_style(is_bold: bool = False, is_underline: bool = False) -> Style:
+            if style not in COLOUR_MAP:
+                return Style(is_bold=is_bold, is_underline=is_underline)
+
+            return Style(style, is_bold, is_underline)
+
+        return _make_style
+
+class Style(metaclass=_StyleMeta):
+    """
+    Console string output style.
+    """
+    def __init__(self, colour: str | int | None = None, is_bold:
+                 bool = False, is_underline: bool = False):
+        self.colour = self._check_colour(colour)
+        self.is_bold = is_bold
+        self.is_underline = is_underline
+
+    def _check_colour(self, colour: str | int | None) -> int:
+        if colour is None:
+            return 0
+
+        if isinstance(colour, str):
+            return COLOUR_MAP.get(colour, 0)
+
+        if 30 <= colour <= 37:
+            return colour
+        if 40 <= colour <= 47:
+            return colour
+        if 90 <= colour <= 97:
+            return colour
+        if 100 <= colour <= 107:
+            return colour
+        return 0
+
+    def bold(self) -> Style:
+        return Style(self.colour, is_bold=True, is_underline=self.is_underline)
+
+    def no_bold(self) -> Style:
+        return Style(self.colour, is_bold=False, is_underline=self.is_underline)
+
+    def underline(self) -> Style:
+        return Style(self.colour, is_bold=self.is_bold, is_underline=True)
+
+    def no_underline(self) -> Style:
+        return Style(self.colour, is_bold=self.is_bold, is_underline=False)
+
+    def background(self) -> Style:
+        colour = self.colour
+        if 30 <= colour <= 37 or 40 <= colour <= 47:
+            colour += 10
+
+        return Style(colour, is_bold=self.is_bold, is_underline=self.is_underline)
+
+    def foreground(self) -> Style:
+        colour = self.colour
+        if 40 <= colour <= 47 or 100 <= colour <= 107:
+            colour -= 10
+
+        return Style(colour, is_bold=self.is_bold, is_underline=self.is_underline)
+
+    def apply(self, s: str, is_tty: bool = True) -> str:
+        code = self._check_colour(self.colour)
+        if not is_tty or code == 0:
+            return s
+
+        parts = []
+        if self.is_bold:
+            parts.append(f"\033[1;{code}m")
+
+        if self.is_underline:
+            parts.append(f"\033[4;{code}m")
+
+        if not parts:
+            parts.append(f"\033[{code}m")
+
+        parts.append(s)
+        parts.append("\033[0m")
+
+        return "".join(parts)
+
+    def __repr__(self) -> str:
+        notes = ""
+        if self.is_bold:
+            notes += " bold"
+        if self.is_underline:
+            notes += " underline"
+        return f"Style(colour={self.colour}{notes})"
 
 class _ColourOutMeta(type):
     """
@@ -376,62 +496,79 @@ class SolutionMethod:
         return not self.finished
 
     def print(
-        self, title: str, suffix: str | None, answer: int = None, is_tty: bool = False
+        self, pid: str, title: str, answer: int = None, timeout: float = 0.0, is_best: bool = False,
+        is_tty: bool = False
     ) -> str:
         """
         Print result of this method.
         """
-        line = [f"{title}"]
-
         if self.result is None:
             r = "NO RESULT"
-            c = "red"
         else:
             r = f"{self.result}"
-            c = None
-
-        line.append(ClrOut.write(f" {r:<15}", c, is_tty))
 
         if answer is None:
             rc = "unknown"
-            cl = "yellow"
+            cl = Style.yellow()
 
         elif self.is_timeout():
             rc = "timeout"
-            cl = "yellow"
+            cl = Style.yellow()
 
         elif self.result is None:
             rc = "NO ANSWER"
-            cl = "yellow"
+            cl = Style.yellow()
 
         elif answer == self.result:
             rc = "correct"
-            cl = "green"
+            cl = Style.green()
 
         else:
             rc = "wrong"
-            cl = "red"
+            cl = Style.red()
 
-        line.append(ClrOut.write(f" {rc:10}", cl, is_tty))
-
-        if self.time_cost < 200.0:
-            cost_colour = "green"
-        elif self.time_cost < 500.0:
-            cost_colour = "cyan"
-        elif self.time_cost < 2000.0:
-            cost_colour = "yellow"
+        line = [cl.apply(f"{pid:<4}", is_tty)]
+        if is_best:
+            line.append(cl.bold().background().apply(title, is_tty))
         else:
-            cost_colour = "red"
+            line.append(cl.apply(title, is_tty))
 
-        if not self.result:
-            cost_colour = None
+        line.append(cl.apply(f"{r:<14}", is_tty))
+        line.append(cl.apply(f"{rc:^9}", is_tty))
 
-        line.append(ClrOut.write(f" {self.time_cost:10.3f}ms", cost_colour, is_tty))
-        if suffix is not None:
-            line.append(f" {suffix}")
+        cost, style = _make_time_cost(self.time_cost, timeout)
+        if is_best:
+            line.append(style.bold().background().apply(cost, is_tty))
+        else:
+            line.append(style.apply(cost, is_tty))
 
-        return "".join(line)
+        return _make_line(*line)
 
+
+def _make_line(*parts: str) -> str:
+    return "| " + " | ".join(parts) + " |"
+
+
+def _make_time_cost(time_cost_ms: float, max_timeout_ms: float) -> tuple[str, Style]:
+    if time_cost_ms < 0.01:
+        return f">>  {time_cost_ms*1000:.3f} µs", Style.green()
+
+    text = f"{time_cost_ms:9.3f} ms"
+    prop = time_cost_ms / max_timeout_ms
+    if prop < 0.1:
+        style = Style.green
+    elif prop < 0.2:
+        style = Style.blue
+    elif prop < 0.3:
+        style = Style.cyan
+    elif prop < 0.5:
+        style = Style.yellow
+    elif prop < 0.8:
+        style = Style.magenta
+    else:
+        style = Style.red
+
+    return text, style()
 
 class ProblemSolver:
     """
@@ -450,7 +587,7 @@ class ProblemSolver:
         self.module_name = module_name
         self.pid = pid
         self.answer = None
-        self._method_names = []
+        self._method_index = []
         self.methods = {}
         self.title = ""
         self.content = ""
@@ -476,14 +613,19 @@ class ProblemSolver:
             raise RuntimeError(f"Method {name} already exists")
 
         method = SolutionMethod(self.module_name, func, name, note)
-        self._method_names.append(name)
         self.methods[name] = method
+        self._build_index()
+
+    def _build_index(self):
+        methods = [(m.title, m.name) for m in self.methods.values()]
+        methods.sort()
+        self._method_index = [name for _, name in methods]
 
     def each_methods(self) -> Iterator[tuple[str, SolutionMethod]]:
         """
         Iterate all methods.
         """
-        for name in self._method_names:
+        for name in self._method_index:
             yield name, self.methods[name]
 
     def _is_correct(self) -> bool:
@@ -540,6 +682,9 @@ class ProblemSolver:
         """
         cost = None
         best = None
+        if self.answer is None:
+            return None
+
         for name, method in self.each_methods():
             if method.is_timeout():
                 continue
@@ -557,7 +702,7 @@ class ProblemSolver:
         return best
 
     def print(
-        self, check: bool = False, strict: bool = False, is_tty: bool = False
+        self, timeout: float = 0.0, check: bool = False, strict: bool = False, is_tty: bool = False
     ) -> str:
         """
         Print result of a problem solver.
@@ -567,44 +712,61 @@ class ProblemSolver:
         answer = self.answer
         if not check:
             answer = None
-        header = f"{self.pid:<5} {self.title:.<40}"
+
+        out_pid_raw = f"{self.pid:>4}"
+        out_title_raw = f"{self.title:<40}"
+        total_timeout = timeout + self.timeout_ext
+        best = self.find_best_solution(check=check)
+
+        note = ""
+        if self.timeout_ext > 0.0:
+            note = ClrOut.yellow(f" [+ {self.timeout_ext:.2f} ms]", is_tty)
+
         if len(self.methods) > 1:
-            best = self.find_best_solution(check=check)
             total_cost = 0.0
             for name, method in self.each_methods():
-                suffix = "*BEST" if name == best else None
-                title = f"      + {method.title:.<38}"
-                line = method.print(title, suffix, answer=answer, is_tty=is_tty)
+                is_best = name == best
+                if is_best:
+                    title = f"* {method.title or 'default':<38}"
+                else:
+                    title = f"+ {method.title or 'default':<38}"
+                line = method.print("", title, answer=answer, is_best=is_best,
+                                    timeout=total_timeout, is_tty=is_tty)
                 lines.append(line)
                 total_cost += method.time_cost
 
-            placeholder = ""
-            note = ""
-            if self.timeout_ext > 0.0:
-                note = f"[+{self.timeout_ext:.2f}ms]"
+            cost, cost_style = _make_time_cost(total_cost, total_timeout * len(self.methods))
+            cost_text = cost_style.apply(cost, is_tty)
+            answer_empty = " " * 14
 
+            result_style = Style()
+            correct = "unknown"
             if check:
-                correct = (
-                    ClrOut.green("correct   ", is_tty)
-                    if self.is_correct(strict=strict)
-                    else ClrOut.red("wrong     ", is_tty)
-                )
-                header += f" {placeholder:15} {correct} {total_cost:10.3f}ms {note}"
-                lines.insert(0, header)
-            else:
-                header += f" {placeholder:15} {total_cost:10.3f}ms {note}"
-                lines.insert(0, header)
+                if self.is_correct(strict=strict):
+                    result_style = Style.green()
+                    correct = "correct"
+                else:
+                    result_style = Style.red()
+                    correct = "wrong"
+            out_pid = result_style.apply(out_pid_raw, is_tty)
+            out_title = result_style.apply(out_title_raw, is_tty)
+            out_correct = result_style.apply(f"{correct:^9}", is_tty)
+            line = _make_line(out_pid, out_title, answer_empty, out_correct, cost_text)
+            lines.insert(0, line + note)
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
-            line = method.print(header, None, answer=answer, is_tty=is_tty)
-            if self.timeout_ext > 0.0:
-                line += f" [+{self.timeout_ext:.2f}ms]"
-            lines.append(line)
+            is_best = best == method.name
+            line = method.print(out_pid_raw, out_title_raw, answer=answer, is_best=is_best,
+                                timeout=total_timeout, is_tty=is_tty)
+            lines.append(line + note)
 
         else:
-            header += " NO SOLUTION"
-            lines.append(header)
+            red = Style.red().bold().background()
+            line = _make_line(red.apply(out_pid_raw, is_tty), red.apply(out_title_raw, is_tty),
+                              red.apply(f"{'NO SOLUTION':^14}", is_tty),
+                              red.apply(f"{'-':^9}", is_tty), red.apply(f"{'-':^12}", is_tty))
+            lines.append(line)
 
         return "\n".join(lines)
 
@@ -901,6 +1063,13 @@ def do_create(id_list: Iterable[int]):
                 "    return 0\n"
             )
 
+OUTPUT_SEPLINE = "".join(["+",
+    "-" * (4 + 2) + "+",    # PID
+    "-" * (40 + 2) + "+",   # Title
+    "-" * (14 + 2) + "+",   # Answer
+    "-" * (9 + 2) + "+",    # Result
+    "-" * (12 + 2) + "+",   # Time cost
+])
 
 def do_run(conf: RunConfigure):
     """
@@ -914,6 +1083,12 @@ def do_run(conf: RunConfigure):
     success, count, methods = 0, 0, 0
     time_start = datetime.now()
     is_tty = sys.stdout.isatty() or conf.colour
+
+    print(OUTPUT_SEPLINE)
+    print(f"| {'PID':>4} | {'Title / Solution':<40} "
+          f"| {'Answer':^14} | {'Result':^9} | {'Time':^12} |")
+    print(OUTPUT_SEPLINE)
+
     try:
         for pid, problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
             name = None
@@ -921,7 +1096,7 @@ def do_run(conf: RunConfigure):
                 name = pid.method
 
             problem.solve(runner, conf=conf, name=name)
-            line = problem.print(check=conf.check, strict=conf.strict, is_tty=is_tty)
+            line = problem.print(timeout=conf.timeout, check=conf.check, strict=conf.strict, is_tty=is_tty)
             if conf.check:
                 if problem.is_correct(strict=conf.strict):
                     success += 1
@@ -932,18 +1107,20 @@ def do_run(conf: RunConfigure):
             count += 1
             methods += len(problem.methods)
 
+    except KeyboardInterrupt:
+        print("Interrupted by user")
+        retcode = 1
+
+    finally:
         time_finish = datetime.now()
+        print(OUTPUT_SEPLINE)
+
         dt = (time_finish - time_start).total_seconds()
         if conf.check:
             print(f"Solved {success}/{count} problems in {dt:.3f}s")
         else:
             print(f"Solved {count} problems solved in {dt:.3f}s")
 
-    except KeyboardInterrupt:
-        print("Interrupted by user")
-        retcode = 1
-
-    finally:
         runner.close()
 
     sys.exit(retcode)
