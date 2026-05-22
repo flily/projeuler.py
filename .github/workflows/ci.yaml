@@ -60,4 +60,4 @@ jobs:
                 $(git ls-files '*.py')
     - name: Run on all solutions
       run: |
-        python projeuler.py run --check --strict --colour
+        python projeuler.py run --check --strict --colour --extra-timeout-map

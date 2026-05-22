@@ -138,6 +138,7 @@ class RunConfigure:
     strict: bool
     colour: str
     timeout: float
+    extra_timeout_map: bool
     preload: bool
     debug: bool
     id_list: Iterable[ProblemId]
@@ -160,6 +161,7 @@ class RunConfigure:
         conf.strict = result.strict
         conf.colour = result.colour
         conf.timeout = result.timeout
+        conf.extra_timeout_map = result.extra_timeout_map
         conf.preload = not result.no_preload
         conf.id_list = result.id
         conf.debug = result.debug
@@ -233,6 +235,9 @@ def _get_parser():
         + "or with unit like 500ms, 10s, 1m",
     )
     cmd_run.add_argument("-o", "--no-timeout", action="store_true", help="disable timeout")
+    cmd_run.add_argument("-e", "--extra-timeout-map", action="store_true",
+                         help="use problem specific extra timeout map for each method, "
+                              "if not set, use the max extra timeout for all methods")
     cmd_run.add_argument(
         "-d",
         "--debug",
@@ -450,6 +455,7 @@ class SolutionMethod:
         self.func = func
         self.name = name
         self.note = note or ""
+        self.timeout_ext = 0.0
         self.time_cost = 0.0
         self.result = _NotRunResult()
         self.finished = False
@@ -467,12 +473,13 @@ class SolutionMethod:
         """
         Run the solution method.
         """
-        result, timeout, cost = runner.run_func(
-            self.module_name, self.func, conf=conf, timeout=timeout
+        total_timeout = timeout + self.timeout_ext
+        result, timeouted, cost = runner.run_func(
+            self.module_name, self.func, conf=conf, timeout=total_timeout
         )
-        self.finished = not timeout
+        self.finished = not timeouted
         self.time_cost = cost
-        if not timeout:
+        if not timeouted:
             self.result = result
 
         else:
@@ -536,13 +543,18 @@ class SolutionMethod:
         line.append(cl.apply(f"{r:<14}", is_tty))
         line.append(cl.apply(f"{rc:^9}", is_tty))
 
-        cost, style = _make_time_cost(self.time_cost, timeout)
+        total_timeout = timeout + self.timeout_ext
+        cost, style = _make_time_cost(self.time_cost, total_timeout)
         if is_best:
             line.append(style.bold().background().apply(cost, is_tty))
         else:
             line.append(style.apply(cost, is_tty))
 
-        return _make_line(*line)
+        extra = ""
+        if self.timeout_ext > 0.0:
+            extra = Style.yellow().bold().apply(f" [+ {self.timeout_ext:.0f} ms]", is_tty)
+
+        return _make_line(*line) + extra
 
 
 def _make_line(*parts: str) -> str:
@@ -579,7 +591,8 @@ class ProblemSolver:
     pid: int
     answer: int | None = None
     module_name: str = ""
-    timeout_ext: float = 0.0
+    timeout_ext: dict[str, float] = {"*": 0.0}
+    use_extra_timeout_map: bool = False
     has_extra_data: str = ""
     __doc__ = ""
 
@@ -591,7 +604,7 @@ class ProblemSolver:
         self.methods = {}
         self.title = ""
         self.content = ""
-        self.timeout_ext = 0.0
+        self.timeout_ext = {"*": 0.0}
 
     def set_document(self, doc: str):
         """
@@ -613,6 +626,7 @@ class ProblemSolver:
             raise RuntimeError(f"Method {name} already exists")
 
         method = SolutionMethod(self.module_name, func, name, note)
+        method.timeout_ext = self.get_extra_timeout(name)
         self.methods[name] = method
         self._build_index()
 
@@ -627,6 +641,47 @@ class ProblemSolver:
         """
         for name in self._method_index:
             yield name, self.methods[name]
+
+    def get_extra_timeout(self, method_name: str) -> float:
+        """
+        Get extra timeout for a method.
+        """
+        if not self.use_extra_timeout_map:
+            return max(self.timeout_ext.values())
+
+        if method_name in self.timeout_ext:
+            return self.timeout_ext[method_name]
+
+        for key, et in self.timeout_ext.items():
+            if not key.startswith("*"):
+                continue
+
+            pattern = key[1:]
+            if pattern in method_name:
+                return et
+
+        if "*" in self.timeout_ext:
+            return self.timeout_ext["*"]
+
+        return 0.0
+
+    def update_all_extra_timeout(self):
+        """
+        Update extra timeout for all methods.
+        """
+        for name, method in self.each_methods():
+            method.timeout_ext = self.get_extra_timeout(name)
+
+    def get_total_timeout(self, basic_timeout: float) -> float:
+        """
+        Get total timeout for this problem.
+        """
+        total_timeout = 0.0
+        for name, _ in self.each_methods():
+            timeout_ext = self.get_extra_timeout(name)
+            total_timeout += basic_timeout + timeout_ext
+
+        return total_timeout
 
     def _is_correct(self) -> bool:
         """
@@ -715,12 +770,10 @@ class ProblemSolver:
 
         out_pid_raw = f"{self.pid:>4}"
         out_title_raw = f"{self.title:<40}"
-        total_timeout = timeout + self.timeout_ext
         best = self.find_best_solution(check=check)
 
         note = ""
-        if self.timeout_ext > 0.0:
-            note = ClrOut.yellow(f" [+ {self.timeout_ext:.2f} ms]", is_tty)
+        total_timeout = self.get_total_timeout(timeout)
 
         if len(self.methods) > 1:
             total_cost = 0.0
@@ -731,11 +784,11 @@ class ProblemSolver:
                 else:
                     title = f"+ {method.title or 'default':<38}"
                 line = method.print("", title, answer=answer, is_best=is_best,
-                                    timeout=total_timeout, is_tty=is_tty)
+                                    timeout=timeout, is_tty=is_tty)
                 lines.append(line)
                 total_cost += method.time_cost
 
-            cost, cost_style = _make_time_cost(total_cost, total_timeout * len(self.methods))
+            cost, cost_style = _make_time_cost(total_cost, total_timeout)
             cost_text = cost_style.apply(cost, is_tty)
             answer_empty = " " * 14
 
@@ -780,7 +833,7 @@ class ProblemSolver:
 
             params = {}
             if conf.timeout > 0.0:
-                params["timeout"] = conf.timeout + self.timeout_ext
+                params["timeout"] = conf.timeout
             method.solve(runner, conf=conf, **params)
 
         data.reset()
@@ -942,7 +995,10 @@ def import_solver(module_name: str, base_name: str) -> ProblemSolver:
         solver.answer = mod.ANSWER
 
     if hasattr(mod, "TIMEOUT_EXT"):
-        solver.timeout_ext = mod.TIMEOUT_EXT
+        if isinstance(mod.TIMEOUT_EXT, (int, float)):
+            solver.timeout_ext = {"*": float(mod.TIMEOUT_EXT)}
+        else:
+            solver.timeout_ext = mod.TIMEOUT_EXT
 
     for name, func in inspect.getmembers(mod, inspect.isfunction):
         # inspect.getmembers() returns all members sorted by name
@@ -1095,8 +1151,12 @@ def do_run(conf: RunConfigure):
             if pid is not None:
                 name = pid.method
 
+            problem.use_extra_timeout_map = conf.extra_timeout_map
+            problem.update_all_extra_timeout()
+
             problem.solve(runner, conf=conf, name=name)
-            line = problem.print(timeout=conf.timeout, check=conf.check, strict=conf.strict, is_tty=is_tty)
+            line = problem.print(timeout=conf.timeout, check=conf.check,
+                                 strict=conf.strict, is_tty=is_tty)
             if conf.check:
                 if problem.is_correct(strict=conf.strict):
                     success += 1
