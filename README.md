@@ -52,6 +52,11 @@ def solve():
 
 
 def solve_method_1():
+    """
+    Description to method 1. (Show in report)
+
+    Detail description to method 1. (Not show in report)
+    """
     return 42
 
 
@@ -64,8 +69,15 @@ def solve_method_2():
 The following module level configure variables are supported:
 - `PID`: Problem ID, legacy used to identify the problem, and no longer used.
 - `ANSWER`: Answer of the problem, optional.
-- `TIMEOUT_EXT`: Extra timeout (in milliseconds) for the problem, optional.
-
+- `TIMEOUT_EXT`:
+  - an `int` or `float`, Extra timeout (in milliseconds) for the problem, optional.
+  - a `dict[str, int | float]`, Extra timeout (in milliseconds) for each method, optional.
+    + If key is actually the same to method name, the extra timeout will be applied to this method.
+    + If key starts with `*`, the extra timeout will be applied to all methods whose name contains
+      the string after `*`. For example, `{"*cache": 2500.0}`, all method whose name contains
+      `cache`, like `solve_with_cache_set` and `solve_with_cache_dict` will get extra timeout 2500ms.
+    + If key is `*`, the extra timeout will be applied to all methods, which has no specific
+      extra timeout by other keys.
 
 ## External data loading
 
