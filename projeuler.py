@@ -566,19 +566,22 @@ def _make_time_cost(time_cost_ms: float, max_timeout_ms: float) -> tuple[str, St
         return f">>  {time_cost_ms*1000:.3f} µs", Style.green()
 
     text = f"{time_cost_ms:9.3f} ms"
-    prop = time_cost_ms / max_timeout_ms
-    if prop < 0.1:
-        style = Style.green
-    elif prop < 0.2:
-        style = Style.blue
-    elif prop < 0.3:
-        style = Style.cyan
-    elif prop < 0.5:
-        style = Style.yellow
-    elif prop < 0.8:
-        style = Style.magenta
+    if max_timeout_ms > 0:
+        prop = time_cost_ms / max_timeout_ms
+        if prop < 0.1:
+            style = Style.green
+        elif prop < 0.2:
+            style = Style.blue
+        elif prop < 0.3:
+            style = Style.cyan
+        elif prop < 0.5:
+            style = Style.yellow
+        elif prop < 0.8:
+            style = Style.magenta
+        else:
+            style = Style.red
     else:
-        style = Style.red
+        style = Style.green
 
     return text, style()
 
