@@ -760,7 +760,8 @@ class ProblemSolver:
         return best
 
     def print(
-        self, timeout: float = 0.0, check: bool = False, strict: bool = False, is_tty: bool = False
+        self, timeout: float = 0.0, time_cost: float = 0.0,
+        check: bool = False, strict: bool = False, is_tty: bool = False
     ) -> str:
         """
         Print result of a problem solver.
@@ -775,11 +776,10 @@ class ProblemSolver:
         out_title_raw = f"{self.title:<40}"
         best = self.find_best_solution(check=check)
 
-        note = ""
         total_timeout = self.get_total_timeout(timeout)
 
         if len(self.methods) > 1:
-            total_cost = 0.0
+            total_cost_ms = 0.0
             for name, method in self.each_methods():
                 is_best = name == best
                 if is_best:
@@ -789,9 +789,12 @@ class ProblemSolver:
                 line = method.print("", title, answer=answer, is_best=is_best,
                                     timeout=timeout, is_tty=is_tty)
                 lines.append(line)
-                total_cost += method.time_cost
+                total_cost_ms += method.time_cost
 
-            cost, cost_style = _make_time_cost(total_cost, total_timeout)
+            overhead_ms = time_cost - total_cost_ms
+            _, overhead_style = _make_time_cost(overhead_ms, timeout)
+            overhead = overhead_style.apply(f" +~> {overhead_ms:.3f} ms", is_tty)
+            cost, cost_style = _make_time_cost(total_cost_ms, total_timeout)
             cost_text = cost_style.apply(cost, is_tty)
             answer_empty = " " * 14
 
@@ -808,14 +811,14 @@ class ProblemSolver:
             out_title = result_style.apply(out_title_raw, is_tty)
             out_correct = result_style.apply(f"{correct:^9}", is_tty)
             line = _make_line(out_pid, out_title, answer_empty, out_correct, cost_text)
-            lines.insert(0, line + note)
+            lines.insert(0, line + overhead)
 
         elif len(self.methods) == 1:
             method = list(self.methods.values())[0]
             is_best = best == method.name
             line = method.print(out_pid_raw, out_title_raw, answer=answer, is_best=is_best,
                                 timeout=total_timeout, is_tty=is_tty)
-            lines.append(line + note)
+            lines.append(line)
 
         else:
             red = Style.red().bold().background()
@@ -826,10 +829,11 @@ class ProblemSolver:
 
         return "\n".join(lines)
 
-    def solve(self, runner: Runner, conf: RunConfigure, name: str = None) -> None:
+    def solve(self, runner: Runner, conf: RunConfigure, name: str = None) -> float:
         """
         Solve the problem.
         """
+        t1 = datetime.now()
         for key, method in self.each_methods():
             if name is not None and key != name:
                 continue
@@ -838,8 +842,11 @@ class ProblemSolver:
             if conf.timeout > 0.0:
                 params["timeout"] = conf.timeout
             method.solve(runner, conf=conf, **params)
+        t2 = datetime.now()
+        dtms = (t2 - t1).total_seconds() * 1000.0
 
         data.reset()
+        return dtms
 
 
 def _return_zero() -> int:
@@ -1157,9 +1164,9 @@ def do_run(conf: RunConfigure):
             problem.use_extra_timeout_map = conf.extra_timeout_map
             problem.update_all_extra_timeout()
 
-            problem.solve(runner, conf=conf, name=name)
-            line = problem.print(timeout=conf.timeout, check=conf.check,
-                                 strict=conf.strict, is_tty=is_tty)
+            cost = problem.solve(runner, conf=conf, name=name)
+            line = problem.print(timeout=conf.timeout, time_cost=cost,
+                                 check=conf.check, strict=conf.strict, is_tty=is_tty)
             if conf.check:
                 if problem.is_correct(strict=conf.strict):
                     success += 1
