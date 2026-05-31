@@ -61,9 +61,6 @@ def nphi(n: int) -> float:
 
 
 def solve_naive() -> int:
-    """
-    Naive solution
-    """
     result = 0
     max_nphi = 0.0
     for n in range(2, LIMIT + 1):
@@ -97,7 +94,7 @@ def nphi_limit(n: int, max_nphi: float) -> float:
 
 def solve_with_limit() -> int:
     """
-    Solution with limit.
+    limit n/Φ(n) with max_nphi
     """
     result = 0
     max_nphi = 0.0
@@ -135,7 +132,7 @@ def sieve_totient(max_num: int) -> int:
 
 def solve_with_sieve() -> int:
     """
-    Solution with sieve.
+    generate with sieve
     """
     result = sieve_totient(LIMIT)
     return result
