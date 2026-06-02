@@ -574,7 +574,12 @@ class SolutionMethod:
 
         extra = ""
         if self.timeout_ext > 0.0:
-            extra = Style.yellow().bold().apply(f" [+ {self.timeout_ext:.0f} ms]", is_tty)
+            if self.time_cost < timeout:
+                extra_colour = Style.green().bold().background()
+            else:
+                extra_colour = Style.yellow().bold()
+
+            extra = extra_colour.apply(f" [+ {self.timeout_ext:.0f} ms]", is_tty)
 
         return _make_line(*line) + extra
 
