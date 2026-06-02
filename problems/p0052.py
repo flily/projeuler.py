@@ -27,7 +27,10 @@ def get_digits(n: int) -> set[int]:
     return result
 
 
-def solve() -> int:
+def solve_digit_set() -> int:
+    """
+    use digits set
+    """
     n = 2
     found = False
     while not found:
@@ -35,6 +38,41 @@ def solve() -> int:
         same_digits = True
         for x in range(2, 7):
             if get_digits(n * x) != n_digits:
+                same_digits = False
+                break
+
+        if same_digits:
+            found = True
+            break
+
+        n += 1
+
+    return n
+
+
+def get_digits_table(n: int) -> list[int]:
+    """
+    Get the digits table of n.
+    """
+    result = [0] * 10
+    while n > 0:
+        result[n % 10] += 1
+        n //= 10
+
+    return result
+
+
+def solve_table() -> int:
+    """
+    use digits table
+    """
+    n = 2
+    found = False
+    while not found:
+        n_digits = get_digits_table(n)
+        same_digits = True
+        for x in range(2, 7):
+            if get_digits_table(n * x) != n_digits:
                 same_digits = False
                 break
 

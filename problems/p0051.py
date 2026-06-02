@@ -67,7 +67,10 @@ def get_family_numbers(n: str) -> Iterator[int]:
         yield int(n.replace('*', str(i)))
 
 
-def solve_naive() -> int:
+def solve_pattern() -> int:
+    """
+    by string pattern
+    """
     n = 11
     while True:
         if is_prime(n):
@@ -76,6 +79,84 @@ def solve_naive() -> int:
                 c = 0
                 for number in get_family_numbers(family):
                     if is_prime(number):
+                        c += 1
+
+                if c == 8:
+                    return n
+
+        n += 2
+
+
+def get_number_families_opt(n: int) -> Iterable[str]:
+    """
+    Get the number families of n.
+    """
+    set_digit = [False] * 10
+    s = str(n)
+    for digit in s:
+        i = int(digit)
+        if set_digit[i]:
+            continue
+
+        set_digit[i] = True
+        yield s.replace(digit, '*')
+
+def solve_no_set() -> int:
+    """
+    by pattern without set
+    """
+    n = 56993
+    while True:
+        if is_prime(n):
+            for family in get_number_families_opt(n):
+                c = 0
+                for number in get_family_numbers(family):
+                    if is_prime(number):
+                        c += 1
+
+                if c == 8:
+                    return n
+
+        n += 2
+
+
+def get_number_families_math(n: int) -> tuple[list[int], list[int]]:
+    """
+    Get the number families of n.
+    """
+    e = 1
+    base = [n] * 10
+    delta = [0] * 10
+    while n > 0:
+        digit = n % 10
+        n //= 10
+
+        delta[digit] += e
+        base[digit] -= digit * e
+        e *= 10
+
+    return base, delta
+
+
+def solve_math() -> int:
+    """
+    algrebraic solution
+    """
+    n = 56993
+    while True:
+        if is_prime(n):
+            base, delta = get_number_families_math(n)
+            for i in range(10):
+                if base[i] == n:
+                    continue
+
+                c = 0
+                for j in range(10):
+                    if base[i] < delta[i] and j == 0:
+                        continue
+
+                    m = base[i] + delta[i] * j
+                    if is_prime(m):
                         c += 1
 
                 if c == 8:
