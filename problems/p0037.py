@@ -97,8 +97,7 @@ def truncatable_generator(size: int) -> Iterator[int]:
         return
 
     if size == 1:
-        for x in [2, 3, 5, 7]:
-            yield x
+        yield from [2, 3, 5, 7]
 
     digits = [[1, 3, 7, 9]] * size
     digits[size - 1] = [3, 7]

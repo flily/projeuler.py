@@ -52,8 +52,8 @@ def calculate_convergent(start, terms, n):
 def e_index(n):
     if (n - 1) % 3 == 2:
         return 2 * (((n - 1) // 3) + 1)
-    else:
-        return 1
+
+    return 1
 
 
 def digits_sum(n):

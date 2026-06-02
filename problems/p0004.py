@@ -134,8 +134,7 @@ def palindrome_gen_n(n: int) -> Iterator[int]:
         return
 
     if n == 1:
-        for x in range(2, 10):
-            yield x
+        yield from range(2, 10)
         return
 
     half_n = n // 2

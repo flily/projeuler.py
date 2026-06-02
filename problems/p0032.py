@@ -20,7 +20,9 @@ sum.
 
 
 ANSWER = 45228
-TIMEOUT_EXT = 1000.0
+TIMEOUT_EXT = {
+    "with_number_filter": 1000.0
+}
 
 def check_pandigital(*nums: int) -> bool:
     """

@@ -138,8 +138,3 @@ def solve_directly_calculate() -> int:
             break
 
     return result
-
-
-if __name__ == "__main__":
-    ANSWER = solve_with_generator()
-    print(f"Answer: {ANSWER}")
