@@ -844,7 +844,7 @@ class ProblemSolver:
             method = list(self.methods.values())[0]
             is_best = best == method.name
             line = method.print(out_pid_raw, out_title_raw, answer=answer, is_best=is_best,
-                                timeout=total_timeout, is_tty=is_tty)
+                                timeout=timeout, is_tty=is_tty)
             lines.append(line)
 
         else:
