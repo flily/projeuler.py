@@ -76,7 +76,7 @@ def _win_get_curse_position(handle) -> tuple[int, int]:
     return x, y
 
 
-IS_WINDOWS_LEGACY_TERMINAL = False
+is_windows_legacy_terminal = False
 if sys.platform == "win32":
     _Win32APIGetStdHandle = WIN_DLL.kernel32.GetStdHandle
     _Win32APIGetStdHandle.argtypes = [wintypes.DWORD]
@@ -87,7 +87,7 @@ if sys.platform == "win32":
     print("\033[D", end="", flush=True)  # move cursor to left
     _x1, _ = _win_get_curse_position(_handle)
     if _x1 - _x0 > 1:
-        IS_WINDOWS_LEGACY_TERMINAL = True
+        is_windows_legacy_terminal = True
         print("\b" * (_x1 - _x0), end="", flush=True)
 
 
@@ -298,7 +298,7 @@ def _get_colour_str(s: str, colour: str, is_tty: bool) -> str:
     if not is_tty:
         return s
 
-    if platform.system() == "Windows" and IS_WINDOWS_LEGACY_TERMINAL:
+    if platform.system() == "Windows" and is_windows_legacy_terminal:
         # Legacy Windows command prompt does not support ANSI escape code
         return s
 
@@ -338,29 +338,45 @@ class Style(metaclass=_StyleMeta):
         if isinstance(colour, str):
             return COLOUR_MAP.get(colour, 0)
 
+        r = 0
         if 30 <= colour <= 37:
-            return colour
+            r = colour
         if 40 <= colour <= 47:
-            return colour
+            r = colour
         if 90 <= colour <= 97:
-            return colour
+            r = colour
         if 100 <= colour <= 107:
-            return colour
-        return 0
+            r = colour
+        return r
 
     def bold(self) -> Style:
+        """
+        Get new style with bold.
+        """
         return Style(self.colour, is_bold=True, is_underline=self.is_underline)
 
     def no_bold(self) -> Style:
+        """
+        Get new style without bold.
+        """
         return Style(self.colour, is_bold=False, is_underline=self.is_underline)
 
     def underline(self) -> Style:
+        """
+        Get new style with underline.
+        """
         return Style(self.colour, is_bold=self.is_bold, is_underline=True)
 
     def no_underline(self) -> Style:
+        """
+        Get new style without underline.
+        """
         return Style(self.colour, is_bold=self.is_bold, is_underline=False)
 
     def background(self) -> Style:
+        """
+        Get new style with background colour.
+        """
         colour = self.colour
         if 30 <= colour <= 37 or 40 <= colour <= 47:
             colour += 10
@@ -368,6 +384,9 @@ class Style(metaclass=_StyleMeta):
         return Style(colour, is_bold=self.is_bold, is_underline=self.is_underline)
 
     def foreground(self) -> Style:
+        """
+        Get new style with foreground colour.
+        """
         colour = self.colour
         if 40 <= colour <= 47 or 100 <= colour <= 107:
             colour -= 10
@@ -375,6 +394,9 @@ class Style(metaclass=_StyleMeta):
         return Style(colour, is_bold=self.is_bold, is_underline=self.is_underline)
 
     def apply(self, s: str, is_tty: bool = True) -> str:
+        """
+        Apply this style to a string.
+        """
         code = self._check_colour(self.colour)
         if not is_tty or code == 0:
             return s
