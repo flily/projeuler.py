@@ -77,16 +77,67 @@ def is_lychrel(n: int) -> bool:
         if is_palindrome(p):
             return False
 
-
         n = p
 
     return True
 
 
-def solve() -> int:
+def solve_with_log() -> int:
+    """
+    use logarithm
+
+    use log10 to calculate the size of n
+    """
     result = 0
     for i in range(1, 10000):
         if is_lychrel(i):
+            result += 1
+
+    return result
+
+
+def make_palindrome_nolog(n: int) -> int:
+    """
+    Make a palindrome from n.
+    """
+    result = 0
+    m = n
+
+    while m > 0:
+        result = result * 10 + m % 10
+        m //= 10
+
+    return result
+
+
+def is_palindrome_nolog(n: int) -> bool:
+    """
+    Check if n is a palindrome.
+    """
+    return n == make_palindrome_nolog(n)
+
+
+def is_lychrel_nolog(n: int) -> bool:
+    """
+    Check if n is a Lychrel number.
+    """
+    m = n
+    for _ in range(50):
+        m = m + make_palindrome_nolog(m)
+        if is_palindrome_nolog(m):
+            return False
+
+    return True
+
+def solve_nolog() -> int:
+    """
+    use no logarithm
+
+    use loop and modulo to make palindrome and check palindrome
+    """
+    result = 0
+    for i in range(1, 10000):
+        if is_lychrel_nolog(i):
             result += 1
 
     return result
