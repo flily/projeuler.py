@@ -459,6 +459,10 @@ class _NotRunResult:
     def __repr__(self) -> str:
         return "NOT RUN"
 
+    @staticmethod
+    def check(other: object) -> bool:
+        return isinstance(other, _NotRunResult)
+
 
 class _TimeoutResult:
     def __repr__(self) -> str:
@@ -524,6 +528,12 @@ class SolutionMethod:
         """
         return not self.finished
 
+    def has_result(self) -> bool:
+        """
+        Has result or not.
+        """
+        return not _NotRunResult.check(self.result)
+
     def print(
         self, pid: str, title: str, answer: int = None, timeout: float = 0.0, is_best: bool = False,
         is_tty: bool = False
@@ -532,20 +542,24 @@ class SolutionMethod:
         Print result of this method.
         """
         if self.result is None:
-            r = "NO RESULT"
+            ans = f"{'NO RESULT':^14}"
+
+        elif not self.has_result():
+            ans = f"{'-':^14}"
+
         else:
-            r = f"{self.result}"
+            ans = f"{self.result:^14}"
 
         if answer is None:
-            rc = "unknown"
+            rc = "?"
             cl = Style.yellow()
 
-        elif self.is_timeout():
+        elif not self.has_result():
+            rc = "-"
+            cl = Style.yellow()
+
+        elif self.is_timeout() and self.result is None:
             rc = "timeout"
-            cl = Style.yellow()
-
-        elif self.result is None:
-            rc = "NO ANSWER"
             cl = Style.yellow()
 
         elif answer == self.result:
@@ -556,22 +570,29 @@ class SolutionMethod:
             rc = "wrong"
             cl = Style.red()
 
+        # column 1: PID
         line = [cl.apply(f"{pid:<4}", is_tty)]
+        # column 2: title
         if is_best:
             line.append(cl.bold().background().apply(title, is_tty))
         else:
             line.append(cl.apply(title, is_tty))
 
-        line.append(cl.apply(f"{r:<14}", is_tty))
-        line.append(cl.apply(f"{rc:^9}", is_tty))
+        line.append(cl.apply(f"{ans:<14}", is_tty))     # column 3: answer
+        line.append(cl.apply(f"{rc:^9}", is_tty))       # column 4: result
 
-        total_timeout = timeout + self.timeout_ext
-        cost, style = _make_time_cost(self.time_cost, total_timeout)
-        if is_best:
-            line.append(style.bold().background().apply(cost, is_tty))
+        # column 5: time cost
+        if self.has_result():
+            total_timeout = timeout + self.timeout_ext
+            cost, style = _make_time_cost(self.time_cost, total_timeout)
+            if is_best:
+                line.append(style.bold().background().apply(cost, is_tty))
+            else:
+                line.append(style.apply(cost, is_tty))
         else:
-            line.append(style.apply(cost, is_tty))
+            line.append(Style.cyan().apply(f"{'-':^12}", is_tty))
 
+        # note: timeout extra
         extra = ""
         if self.timeout_ext > 0.0:
             if self.time_cost < timeout:
@@ -821,7 +842,7 @@ class ProblemSolver:
             overhead_ms = time_cost - total_cost_ms
             _, overhead_style = _make_time_cost(overhead_ms, timeout)
             overhead = overhead_style.apply(f" +~> {overhead_ms:.3f} ms", is_tty)
-            cost, cost_style = _make_time_cost(total_cost_ms, total_timeout)
+            cost, cost_style = _make_time_cost(time_cost, total_timeout)
             cost_text = cost_style.apply(cost, is_tty)
             answer_empty = " " * 14
 
