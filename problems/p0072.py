@@ -46,8 +46,9 @@ def sieve_totient(max_num: int) -> int:
         if sieve[i] == 0:
             for j in range(i, max_num + 1, i):
                 if sieve[j] == 0:
-                    sieve[j] = j
-                sieve[j] /= i / (i - 1)
+                    sieve[j] = j * (i - 1) // i
+                else:
+                    sieve[j] = sieve[j] * (i - 1) // i
 
         result += sieve[i]
 
