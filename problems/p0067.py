@@ -25,11 +25,20 @@ algorithm to solve it. ;o)
 """
 
 
-from data.p0067 import load
+from data import load
 
 
 PID = 67
 ANSWER = 7273
+
+
+def data_handler(data: str) -> list[list[int]]:
+    result = []
+    for line in data.splitlines():
+        row = [int(x) for x in line.split()]
+        result.append(row)
+
+    return result
 
 
 def max_path_sum_recursive(triangle, row: int, column: int, s: int):
@@ -47,7 +56,8 @@ def max_path_sum_recursive(triangle, row: int, column: int, s: int):
 
 
 def solve_brute_force() -> int:
-    return max_path_sum_recursive(load(), 0, 0, 0)
+    data = load(data_handler)
+    return max_path_sum_recursive(data, 0, 0, 0)
 
 
 def path_sum_flood(triangle) -> int:
@@ -68,4 +78,5 @@ def path_sum_flood(triangle) -> int:
 
 
 def solve_flood() -> int:
-    return path_sum_flood(load())
+    data = load(data_handler)
+    return path_sum_flood(data)

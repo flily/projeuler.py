@@ -24,6 +24,12 @@ PID = 22
 ANSWER = 871198282
 
 
+def data_handler(data: str) -> list[str]:
+    items = data.split(",")
+    result = [x[1:-1] for x in items]   # remove quotes
+    return result
+
+
 def name_score(name: str) -> int:
     """
     Get the name score of name.
@@ -37,7 +43,7 @@ def name_score(name: str) -> int:
 
 def solve() -> int:
     result = 0
-    name_list = load()
+    name_list = load(data_handler)
     name_list.sort()
     for i, name in enumerate(name_list):
         score = name_score(name) * (i + 1)

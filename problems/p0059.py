@@ -39,6 +39,11 @@ from data import load
 ANSWER = 129448
 
 
+def data_handler(data: str) -> list[int]:
+    bytes_str = data.split(",")
+    return [int(b) for b in bytes_str]
+
+
 def decrypt(cipher: Iterable[int], key: Iterable[int]) -> Iterable[int]:
     """
     Decrypt cipher with key.
@@ -64,7 +69,7 @@ def readable_filter(plain: Iterable[int]) -> bool:
 def solve_naive() -> int:
     char_a = ord("a")
     char_z = ord("z")
-    cipher = load()
+    cipher = load(data_handler)
     for key in itertools.product(range(char_a, char_z + 1), repeat=3):
         plain = decrypt(cipher, key)
         if not readable_filter(plain):
@@ -118,7 +123,7 @@ def readable_filter_with_state_machine(plain: Iterable[int]) -> bool:
 def solve_with_state_machine() -> int:
     char_a = ord("a")
     char_z = ord("z")
-    cipher = load()
+    cipher = load(data_handler)
     for key in itertools.product(range(char_a, char_z + 1), repeat=3):
         plain = decrypt(cipher, key)
         if not readable_filter_with_state_machine(plain):
@@ -152,7 +157,7 @@ def readable_filter_with_buffer(plain: Iterable[int]) -> bool:
 def solve_with_buffer() -> int:
     char_a = ord("a")
     char_z = ord("z")
-    cipher = load()
+    cipher = load(data_handler)
     for key in itertools.product(range(char_a, char_z + 1), repeat=3):
         plain = decrypt(cipher, key)
         if not readable_filter_with_buffer(plain):

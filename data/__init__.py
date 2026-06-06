@@ -7,21 +7,37 @@ Helper module for loading external data.
 """
 
 
-import os
 import inspect
 import importlib
 
+from typing import (
+    Callable,
+)
 
-def preload_module_data(data_name):
-    """
-    Preload data from problem of calling module.
-    """
+
+def _preload_module_data(data_name):
     mod = importlib.import_module(data_name)
     if not hasattr(mod, "load"):
         raise AttributeError(f"module {mod} has no attribute 'load'")
 
     return mod.load()
 
+
+def _module_name(full_name: str) -> str:
+    return full_name.split(".")[-1]
+
+
+def _get_caller_module_name(index=1) -> str:
+    stack = inspect.stack()
+    caller_frame = stack[index]         # 0: current frame
+    caller_module = inspect.getmodule(caller_frame[0])
+    full_name = caller_module.__name__  # e.g. "problems.p0022"
+    return _module_name(full_name)
+
+
+def _default_data_handler(raw: str) -> list[str]:
+    print("default data handler called")
+    return raw.splitlines()
 
 class _DataLoader:
     """
@@ -37,26 +53,27 @@ class _DataLoader:
         """
         self.cache = None
 
-    def preload(self, data_name):
+    def preload(self, module_name):
         """
         Preload data from problem of specified module.
         """
-        mod = importlib.import_module(data_name)
-        if not hasattr(mod, "load"):
-            raise AttributeError(f"module {mod} has no attribute 'load'")
+        if len(module_name) <= 0:
+            return None
 
-        data = mod.load()
-        self.cache = data
-        return data
+        with open(f"data/{module_name}.txt", encoding="utf-8") as f:
+            raw = f.read()
 
-    def try_preload(self, data_name):
+        self.cache = raw
+        return raw
+
+    def try_preload(self, module_name):
         """
         Preload data from problem of specified module.
         """
         try:
-            return self.preload(data_name)
+            return self.preload(module_name)
 
-        except ImportError:
+        except FileNotFoundError:
             return None
 
     def load(self):
@@ -66,22 +83,22 @@ class _DataLoader:
         if self.cache is not None:
             return self.cache
 
-        stack = inspect.stack()
-        caller_frame_info = stack[2]
-        caller_filename = os.path.basename(caller_frame_info.filename)
-        caller_module_name = caller_filename[:-3]  # remove ".py"
-        data_module = f"data.{caller_module_name}"
-        return self.preload(data_module)
+        caller_module_name = _get_caller_module_name(3)
+        return self.preload(caller_module_name)
 
 
 _data_loader = _DataLoader()
 
 
-def load():
+def load(handler: Callable[[str], list[str]] | None = None):
     """
-    Lsoad data dynamically from problem of calling module or preloaded cache.
+    Load data dynamically from problem of calling module or preloaded cache.
     """
-    return _data_loader.load()
+    data = _data_loader.load()
+    if handler is not None:
+        data = handler(data)
+
+    return data
 
 
 def preload(data_name):
@@ -95,6 +112,9 @@ def try_preload(data_name):
     """
     Preload data from problem of specified module.
     """
+    if len(data_name) <= 0:
+        return None
+
     return _data_loader.try_preload(data_name)
 
 

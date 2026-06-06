@@ -21,14 +21,23 @@ NOTE: The first two lines in the file represent the numbers in the example given
 
 import math
 
-from data.p0099 import load
+from data import load
 
 
 ANSWER = 709
 
 
+def data_handler(data: str) -> list[tuple[int, int]]:
+    result = []
+    for line in data.splitlines():
+        base_str, exp_str = line.split(",")
+        result.append((int(base_str), int(exp_str)))
+
+    return result
+
+
 def solve() -> int:
-    nums = load()
+    nums = load(data_handler)
     max_index = 0
     max_value = 0
 
@@ -40,8 +49,9 @@ def solve() -> int:
 
     return max_index
 
+
 def solve_by_log() -> int:
-    nums = load()
+    nums = load(data_handler)
     max_index = 0
     max_value = 0
 

@@ -915,7 +915,7 @@ class Job:
         """
         Run function
         """
-        data.try_preload(f"data.{self.module_name}")
+        data.try_preload(self.module_name)
         if not self.preload:
             data.reset()
 
@@ -1115,7 +1115,7 @@ def find_problem_solvers(
 
         package_name = dirname.replace("/", ".")
         module_name = f"{package_name}.{base_name}"
-        data_name = f"data.{base_name}"
+        data_name = base_name
 
         try:
             solver = import_solver(module_name, base_name)

@@ -65,6 +65,15 @@ from data import load
 ANSWER = 376
 
 
+def data_handler(data: str):
+    result = []
+    for line in data.splitlines():
+        cards = line.split()
+        result.append((cards[:5], cards[5:]))
+
+    return result
+
+
 CARD_VALUE_MAP = {
     "2": (2, " 2"),
     "3": (3, " 3"),
@@ -276,7 +285,7 @@ def check_hands(hand_a: Hands, hand_b: Hands) -> int:
 
 def solve() -> int:
     result = 0
-    for player_a, player_b in load():
+    for player_a, player_b in load(data_handler):
         hand_a = Hands([Card(card) for card in player_a])
         hand_b = Hands([Card(card) for card in player_b])
 

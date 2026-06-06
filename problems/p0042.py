@@ -25,6 +25,12 @@ from data import load
 ANSWER = 162
 
 
+def data_handler(data: str) -> list[str]:
+    items = data.split(",")
+    result = [x[1:-1] for x in items]   # remove quotes
+    return result
+
+
 def triangle_number(n: int) -> int:
     """
     Get the nth triangle number.
@@ -49,7 +55,7 @@ def solve_naive() -> int:
         triangle_numbers.add(triangle_number(i))
 
     result = 0
-    for word in load():
+    for word in load(data_handler):
         score = word_score(word)
         if score in triangle_numbers:
             result += 1
