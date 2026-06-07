@@ -16,7 +16,7 @@ PID = 1
 ANSWER = 233168
 
 
-def solve() -> int:
+def solve_naive() -> int:
     i = 3
     s = 0
     while i < 1000:
@@ -26,3 +26,11 @@ def solve() -> int:
         i += 1
 
     return s
+
+
+def sum_of_multiples(n: int, k: int) -> int:
+    m = (n - 1) // k
+    return k * m * (m + 1) // 2
+
+def solve_formula() -> int:
+    return sum_of_multiples(1000, 3) + sum_of_multiples(1000, 5) - sum_of_multiples(1000, 15)

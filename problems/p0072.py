@@ -35,12 +35,11 @@ def solve_naive() -> int:
     return count
 
 
-def sieve_totient(max_num: int) -> int:
+def sieve_phi(max_num: int) -> int:
     """
     Get the value of Φ(n) for n using sieve.
     """
     sieve = [0] * (max_num + 1)
-    result = 0
 
     for i in range(2, max_num + 1):
         if sieve[i] == 0:
@@ -50,10 +49,9 @@ def sieve_totient(max_num: int) -> int:
                 else:
                     sieve[j] = sieve[j] * (i - 1) // i
 
-        result += sieve[i]
-
-    return result
+    return sieve
 
 
 def solve_sieve() -> int:
-    return sieve_totient(LIMIT)
+    sieve = sieve_phi(LIMIT)
+    return sum(sieve)
