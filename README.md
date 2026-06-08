@@ -86,26 +86,19 @@ solve the problem. The framework provides an automatic way to load external data
 following steps:
 
 1.  Download external data from Project Euler website, and save it to `data` directory.
-2.  Write data loading module, store in `data` directory, with the filename exactly the same as
-    the filename of problem solution file. A method `load()` MUST BE implemented in the module, and
-    return the load data. See example in [data of problem 22](data/p0022.txt) and
-    [data loader of problem 22](data/p0022.py).
+    The filename in format `pXXXX.txt`, which is exactly the same as problem solution file.
+    See example in [data of problem 22](data/p0022.txt).
+2.  Write data loading handler, in your solution file in `problems` directory, you can use any name
+    for function name of data handler.
+    See [data loader of problem 22](problems/p0022.py#L27).
     ```python
-    #!/usr/bin/env python3
-    # coding: utf-8
-    # data/example.py
-    
-    
-    def load():
-        result = []
-        with open("data/example.txt", "r") as fd:
-            for line in fd:
-                result.append(int(line))
-    
+    def data_handler(data: str) -> list[str]:
+        items = data.split(",")
+        result = [x[1:-1] for x in items]   # remove quotes
         return result
     ```
-3.  In the solution module of problem, import the data loading module, and call `data.load()`
-    method to load data. See example in [solution of problem 22](problems/p0022.py).
+3.  Then in your solution methods in the same file, call `data.load(data_handler)`
+    method to load data. See example in [solution of problem 22](problems/p0022.py#).
     ```python
     #!/usr/bin/env python3
     # coding: utf-8
@@ -117,8 +110,13 @@ following steps:
     
     ANSWER = 42
     
+    def data_handler(data: str) -> list[str]:
+        items = data.split(",")
+        result = [x[1:-1] for x in items]   # remove quotes
+        return result
+    
     
     def solve():
-        data = load()
+        data = load(data_handler)
         return sum(data)
     ```
