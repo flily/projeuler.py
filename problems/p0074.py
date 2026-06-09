@@ -30,6 +30,9 @@ terms?
 
 
 ANSWER = 402
+TIMEOUT_EXT = {
+    "table": 500.0,
+}
 
 
 def factorial(n: int) -> int:
