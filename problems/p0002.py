@@ -28,3 +28,15 @@ def solve() -> int:
             s += b
 
     return s
+
+
+def solve_no_branch() -> int:
+    s = 0
+    a, b = 1, 2
+    while b < 4_000_000:
+        s += b
+        a, b = b, a + b
+        a, b = b, a + b
+        a, b = b, a + b
+
+    return s

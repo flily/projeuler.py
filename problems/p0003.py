@@ -130,3 +130,29 @@ def solve_by_prime_table() -> int:
     primes = PrimeTable(primes_base)
 
     return find_largest_prime_factor(primes, NUMBER)
+
+
+def find_largest_prime_factor_by_sieve(n: int) -> int:
+    sqrt = int(n**0.5)
+    sieve = [True] * (sqrt + 1)
+    sieve[0] = False
+
+    m = n
+    p, mp = 3, 3
+    while p * p < m:
+        if sieve[p // 2]:
+            if m % p == 0:
+                m = remove_factor(m, p)
+                sqrt = int(m**0.5)
+                mp = p
+
+            for i in range(p * p, sqrt, p):
+                sieve[i // 2] = False
+
+        p += 2
+
+    return mp
+
+
+def solve_by_sieve() -> int:
+    return find_largest_prime_factor_by_sieve(NUMBER)
