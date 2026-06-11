@@ -743,7 +743,7 @@ class ProblemSolver:
             if method.is_timeout():
                 continue
 
-            if method.result is None:
+            if not method.has_result():
                 continue
 
             if self.answer is not None and method.result != self.answer:
@@ -777,6 +777,9 @@ class ProblemSolver:
         """
         Is the solution correct.
         """
+        if self.answer is None:
+            return False
+
         if strict:
             return self._is_all_correct()
 
