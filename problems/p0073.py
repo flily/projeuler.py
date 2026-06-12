@@ -23,6 +23,10 @@ import math
 
 
 ANSWER = 7295372
+TIMEOUT_EXT = {
+    "math_gcd": 500.0,
+    "gcd": 500.0,
+}
 
 LIMIT = 12_000
 
