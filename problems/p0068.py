@@ -45,6 +45,7 @@ import itertools
 
 
 ANSWER = 6531031914842725
+TIMEOUT_EXT = 1000.0
 
 
 def gon_flags(inner: list[int], outer: list[int]) -> int:
