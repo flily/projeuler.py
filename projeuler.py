@@ -542,13 +542,13 @@ class SolutionMethod:
         Print result of this method.
         """
         if self.result is None:
-            ans = f"{'NO RESULT':^14}"
+            ans = f"{'NO RESULT':^30}"
 
         elif not self.has_result():
-            ans = f"{'-':^14}"
+            ans = f"{'-':^30}"
 
         else:
-            ans = f"{self.result:^14}"
+            ans = f"{self.result:^30}"
 
         if answer is None:
             rc = "?"
@@ -847,7 +847,7 @@ class ProblemSolver:
             overhead = overhead_style.apply(f" +~> {overhead_ms:.3f} ms", is_tty)
             cost, cost_style = _make_time_cost(time_cost, total_timeout)
             cost_text = cost_style.apply(cost, is_tty)
-            answer_empty = " " * 14
+            answer_empty = " " * 30
 
             result_style = Style()
             correct = "unknown"
@@ -874,7 +874,7 @@ class ProblemSolver:
         else:
             red = Style.red().bold().background()
             line = _make_line(red.apply(out_pid_raw, is_tty), red.apply(out_title_raw, is_tty),
-                              red.apply(f"{'NO SOLUTION':^14}", is_tty),
+                              red.apply(f"{'NO SOLUTION':^30}", is_tty),
                               red.apply(f"{'-':^9}", is_tty), red.apply(f"{'-':^12}", is_tty))
             lines.append(line)
 
@@ -1183,7 +1183,7 @@ def do_create(id_list: Iterable[int]):
 OUTPUT_SEPLINE = "".join(["+",
     "-" * (4 + 2) + "+",    # PID
     "-" * (40 + 2) + "+",   # Title
-    "-" * (14 + 2) + "+",   # Answer
+    "-" * (30 + 2) + "+",   # Answer
     "-" * (9 + 2) + "+",    # Result
     "-" * (12 + 2) + "+",   # Time cost
 ])
@@ -1203,7 +1203,7 @@ def do_run(conf: RunConfigure):
 
     print(OUTPUT_SEPLINE)
     print(f"| {'PID':>4} | {'Title / Solution':<40} "
-          f"| {'Answer':^14} | {'Result':^9} | {'Time':^12} |")
+          f"| {'Answer':^30} | {'Result':^9} | {'Time':^12} |")
     print(OUTPUT_SEPLINE)
 
     try:
