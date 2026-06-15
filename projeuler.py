@@ -499,7 +499,10 @@ class SolutionMethod:
         """
         Run the solution method.
         """
-        total_timeout = timeout + self.timeout_ext
+        total_timeout = timeout
+        if timeout > 0:
+            total_timeout += self.timeout_ext
+
         result, timeouted, cost = runner.run_func(
             self.module_name, self.func, conf=conf, timeout=total_timeout
         )
@@ -595,7 +598,7 @@ class SolutionMethod:
         # note: timeout extra
         extra = ""
         if self.timeout_ext > 0.0:
-            if self.time_cost < timeout:
+            if self.has_result() and self.time_cost < timeout:
                 extra_colour = Style.green().bold().background()
             else:
                 extra_colour = Style.yellow().bold()
