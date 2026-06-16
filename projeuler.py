@@ -202,6 +202,9 @@ def _get_parser():
         "-f", "--full", action="store_true", help="show full information"
     )
     cmd_list.add_argument(
+        "-m", "--show-missing", action="store_true", help="show missing problems"
+    )
+    cmd_list.add_argument(
         "id", nargs="*", type=ProblemId, help="show specific problem information"
     )
 
@@ -455,6 +458,10 @@ def _add_indent(s: str, indent: str) -> str:
     return "\n".join(result)
 
 
+def _make_line(*parts: str) -> str:
+    return "| " + " | ".join(parts) + " |"
+
+
 class _NotRunResult:
     def __repr__(self) -> str:
         return "NOT RUN"
@@ -606,10 +613,6 @@ class SolutionMethod:
             extra = extra_colour.apply(f" [+ {self.timeout_ext:.0f} ms]", is_tty)
 
         return _make_line(*line) + extra
-
-
-def _make_line(*parts: str) -> str:
-    return "| " + " | ".join(parts) + " |"
 
 
 def _make_time_cost(time_cost_ms: float, max_timeout_ms: float) -> tuple[str, Style]:
@@ -1095,7 +1098,7 @@ def check_extra_data(module_name: str) -> bool:
 
 def find_problem_solvers(
     dirname: str, id_list: Iterable[ProblemId] = None
-) -> Iterator[tuple[ProblemId | None, ProblemSolver]]:
+) -> Iterator[ProblemSolver]:
     """
     Find all problem solvers in given directory.
     """
@@ -1128,11 +1131,10 @@ def find_problem_solvers(
             if len(id_map) > 0 and solver.pid not in id_map:
                 continue
 
-            pid = id_map.get(solver.pid)
             if check_extra_data(data_name):
                 solver.has_extra_data = data_name
 
-            yield pid, solver
+            yield solver
 
         except ImportError as ex:
             print(f"Failed to import {module_name}: {ex}")
@@ -1141,11 +1143,20 @@ def find_problem_solvers(
             print(f"Syntax error in {module_name}/{filename}: {ex}")
 
 
-def do_list(id_list: Iterable[ProblemId], full: bool):
+def do_list(id_list: Iterable[ProblemId], full: bool, show_missing: bool):
     """
     List problems.
     """
-    for _, problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
+    last = None
+    for problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
+        if show_missing and last is not None and problem.pid - last > 1:
+            if problem.pid - last == 2:
+                print(f"...   {last + 1}")
+            else:
+                print(f"...   {last + 1} ~ {problem.pid - 1}")
+
+        last = problem.pid
+
         print(f"{problem.pid:<5d} {problem.title}")
         if full:
             print(_add_indent(problem.content, "      "))
@@ -1210,15 +1221,11 @@ def do_run(conf: RunConfigure):
     print(OUTPUT_SEPLINE)
 
     try:
-        for pid, problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
-            name = None
-            if pid is not None:
-                name = pid.method
-
+        for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
             problem.use_extra_timeout_map = conf.extra_timeout_map
             problem.update_all_extra_timeout()
 
-            cost = problem.solve(runner, conf=conf, name=name)
+            cost = problem.solve(runner, conf=conf, name=None)
             line = problem.print(timeout=conf.timeout, time_cost=cost,
                                  check=conf.check, strict=conf.strict, is_tty=is_tty)
             if conf.check:
@@ -1258,7 +1265,7 @@ def main():
     args = parser.parse_args()
 
     if args.command == "list":
-        do_list(args.id, args.full)
+        do_list(args.id, args.full, args.show_missing)
 
     elif args.command == "create":
         do_create(args.id)
