@@ -76,7 +76,9 @@ def solve_naive() -> int:
         n += 1
 
 
-def count_sum_prime_cache(cache: dict[tuple[int, int], int], primes: list[int], target: int, max_num: int) -> int:
+def count_sum_prime_cache(
+    cache: dict[tuple[int, int], int], primes: list[int], target: int, max_num: int
+) -> int:
     key = (target, max_num)
     if key in cache:
         return cache[key]
@@ -96,6 +98,9 @@ def count_sum_prime_cache(cache: dict[tuple[int, int], int], primes: list[int], 
     return count
 
 def solve_cache() -> int:
+    """
+    use cache (dict)
+    """
     primes = gen_prime_list(100)
     primes.reverse()
 
@@ -110,32 +115,35 @@ def solve_cache() -> int:
         n += 1
 
 
-class PrimesList:
-    def __init__(self, max_n: int):
-        self.primes = gen_prime_list(max_n)
-        self.primes.reverse()
-
+def make_count_function(primes: list[int]) -> callable:
     @functools.cache
-    def count(self, target: int, max_num: int) -> int:
+    def count_sum(target: int, max_num: int) -> int:
         if target == 0:
             return 1
 
         count = 0
-        for p in self.primes:
+        for p in primes:
             if p > target or p > max_num:
                 continue
 
-            c = self.count(target - p, p)
+            c = count_sum(target - p, p)
             count += c
 
         return count
 
+    return count_sum
+
+
 def solve_cache_functools() -> int:
-    primes = PrimesList(100)
+    """
+    use cache (functools.cache)
+    """
+    primes = gen_prime_list(100)
+    count_sum = make_count_function(primes)
 
     n = 11
     while True:
-        got = primes.count(n, n - 1)
+        got = count_sum(n, n - 1)
         # print(f"[{n}] => {got}")
         if got > LIMIT:
             return n
