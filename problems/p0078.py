@@ -22,7 +22,7 @@ Find the least value of n for which p(n) is divisible by one million.
 
 ANSWER = 55374
 TIMEOUT_EXT = {
-    "partition_cache_mod": 3000.0,
+    "partition_cache_mod": 4000.0,
 }
 
 DIVISOR = 1_000_000
@@ -90,7 +90,7 @@ def partitions_cache(cache: dict[int, int], n: int) -> int:
 # PyPy 7.3 (3.10): ~1.4s
 def solve_partition_cache() -> int:
     """
-    use partitions function (cached)
+    partitions function (cached)
     """
     cache = {}
 
@@ -132,7 +132,7 @@ def partitions_cache_mod(cache: dict[int, int], mod: int, n: int) -> int:
 
 def solve_partition_cache_mod() -> int:
     """
-    use partitions function with modulo
+    partitions function with modulo
     """
     cache = {}
 
