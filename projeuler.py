@@ -639,6 +639,17 @@ def _make_time_cost(time_cost_ms: float, max_timeout_ms: float) -> tuple[str, St
 
     return text, style()
 
+
+def _pattern_match(pattern: str | None, name: str) -> bool:
+    if pattern is None:
+        return True
+
+    if pattern.startswith("*") or pattern.startswith("~"):
+        return pattern[1:] in name
+
+    return pattern == name
+
+
 class ProblemSolver:
     """
     Base class of problem solution.
@@ -886,19 +897,20 @@ class ProblemSolver:
 
         return "\n".join(lines)
 
-    def solve(self, runner: Runner, conf: RunConfigure, name: str = None) -> float:
+    def solve(self, runner: Runner, conf: RunConfigure, pattern: str = None) -> float:
         """
         Solve the problem.
         """
         t1 = datetime.now()
         for key, method in self.each_methods():
-            if name is not None and key != name:
+            if pattern is not None and not _pattern_match(pattern, key):
                 continue
 
             params = {}
             if conf.timeout > 0.0:
                 params["timeout"] = conf.timeout
             method.solve(runner, conf=conf, **params)
+
         t2 = datetime.now()
         dtms = (t2 - t1).total_seconds() * 1000.0
 
@@ -1098,7 +1110,7 @@ def check_extra_data(module_name: str) -> bool:
 
 def find_problem_solvers(
     dirname: str, id_list: Iterable[ProblemId] = None
-) -> Iterator[ProblemSolver]:
+) -> Iterator[tuple[ProblemId | None, ProblemSolver]]:
     """
     Find all problem solvers in given directory.
     """
@@ -1128,13 +1140,14 @@ def find_problem_solvers(
 
         try:
             solver = import_solver(module_name, base_name)
-            if len(id_map) > 0 and solver.pid not in id_map:
+            id_selector = id_map.get(solver.pid, None)
+            if len(id_map) > 0 and id_selector is None:
                 continue
 
             if check_extra_data(data_name):
                 solver.has_extra_data = data_name
 
-            yield solver
+            yield id_selector, solver
 
         except ImportError as ex:
             print(f"Failed to import {module_name}: {ex}")
@@ -1148,7 +1161,7 @@ def do_list(id_list: Iterable[ProblemId], full: bool, show_missing: bool):
     List problems.
     """
     last = None
-    for problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
+    for _, problem in find_problem_solvers(PROBLEM_DIR, id_list=id_list):
         if show_missing and last is not None and problem.pid - last > 1:
             if problem.pid - last == 2:
                 print(f"...   {last + 1}")
@@ -1221,11 +1234,15 @@ def do_run(conf: RunConfigure):
     print(OUTPUT_SEPLINE)
 
     try:
-        for problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
+        for selector, problem in find_problem_solvers(PROBLEM_DIR, id_list=conf.id_list):
+            name = None
+            if selector is not None:
+                name = selector.method
+
             problem.use_extra_timeout_map = conf.extra_timeout_map
             problem.update_all_extra_timeout()
 
-            cost = problem.solve(runner, conf=conf, name=None)
+            cost = problem.solve(runner, conf=conf, pattern=name)
             line = problem.print(timeout=conf.timeout, time_cost=cost,
                                  check=conf.check, strict=conf.strict, is_tty=is_tty)
             if conf.check:
