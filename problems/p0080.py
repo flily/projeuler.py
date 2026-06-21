@@ -53,8 +53,8 @@ def square_root_digits(n: int, limit: int) -> tuple[int, list[int]]:
 def solve() -> int:
     result = 0
     for n in range(1, 101):
-        n, digits = square_root_digits(n, 99)
+        i, digits = square_root_digits(n, 99)
         if digits:
-            result += n + sum(digits)
+            result += i + sum(digits)
 
     return result
