@@ -560,16 +560,16 @@ class SolutionMethod:
         else:
             ans = f"{self.result:^30}"
 
-        if answer is None:
+        if self.is_timeout() and self.result is None:
+            rc = "timeout"
+            cl = Style.yellow()
+
+        elif answer is None:
             rc = "?"
             cl = Style.yellow()
 
         elif not self.has_result():
             rc = "-"
-            cl = Style.yellow()
-
-        elif self.is_timeout() and self.result is None:
-            rc = "timeout"
             cl = Style.yellow()
 
         elif answer == self.result:
