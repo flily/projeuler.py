@@ -869,12 +869,18 @@ class ProblemSolver:
             result_style = Style()
             correct = "unknown"
             if check:
-                if self.is_correct(strict=strict):
+                if self.answer is None:
+                    result_style = Style.yellow()
+                    correct = "?"
+
+                elif self.is_correct(strict=strict):
                     result_style = Style.green()
                     correct = "correct"
+
                 else:
                     result_style = Style.red()
                     correct = "wrong"
+
             out_pid = result_style.apply(out_pid_raw, is_tty)
             out_title = result_style.apply(out_title_raw, is_tty)
             out_correct = result_style.apply(f"{correct:^9}", is_tty)
