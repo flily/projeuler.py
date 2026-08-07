@@ -46,7 +46,7 @@ def data_handler(raw: str) -> list[list[int]]:
 
 def search_minimal_path_sum_dfs(
     matrix: list[list[int]], size: tuple[int, int], position: tuple[int, int], s: int
-) -> list[int]:
+) -> int:
     width, height = size
     row, col = position
 

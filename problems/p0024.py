@@ -28,7 +28,7 @@ def generate_permutations(
     i: int = 0,
     count: int = 0,
     stop_at: int = None,
-) -> (int, int):
+) -> tuple[int, int]:
     """
     Generate permutations of digits.
     """

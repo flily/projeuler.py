@@ -38,6 +38,7 @@ def is_prime(n: int) -> bool:
     return True
 
 
+# checked in rust version, cost ~105s.
 def solve_naive() -> int:
     n = NUMBER
     i = 3
