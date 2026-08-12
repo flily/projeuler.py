@@ -145,3 +145,66 @@ def solve_with_cache() -> int:
                 max_a, max_b = a, b
 
     return max_a * max_b
+
+
+def is_prime_sieve(sieve: list[bool], n: int) -> bool:
+    if n < 2:
+        return False
+
+    if n == 2:
+        return True
+
+    if n % 2 == 0:
+        return False
+
+    return sieve[n // 2]
+
+
+def make_sieve(limit: int) -> list[bool]:
+    """
+    Make a sieve of primes
+    """
+    sieve = [True] * ((limit + 1) // 2)
+    sieve[0] = False    # 1 is not prime
+    sieve[1] = True     # 3 is prime
+
+    for i in range(1, len(sieve)):
+        if sieve[i]:
+            n = (2 * i) + 1
+            for j in range((n * n) // 2, len(sieve), n):
+                sieve[j] = False
+
+    return sieve
+
+
+def consecutive_prime_size_with_sieve(sieve: list[bool], a: int, b: int) -> int:
+    """
+    Get the consecutive prime size of n ^ 2 + a * n + b
+    """
+    x = 0
+    while True:
+        n = f(a, b, x)
+        if not is_prime_sieve(sieve, n):
+            break
+
+        x += 1
+
+    return x
+
+
+def solve_with_sieve() -> int:
+    max_prime_size = 0
+    max_a, max_b = 0, 0
+    sieve = make_sieve(100_000)
+
+    for a in range(-999, 1000):
+        for b in range(-1000, 1001):
+            if (b != 0 and a % b == 0) or (a != 0 and b % a == 0):
+                continue
+
+            s = consecutive_prime_size_with_sieve(sieve, a, b)
+            if s > max_prime_size:
+                max_prime_size = s
+                max_a, max_b = a, b
+
+    return max_a * max_b
