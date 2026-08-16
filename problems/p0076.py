@@ -54,13 +54,17 @@ def count_sum_cache(cache: dict[tuple[int, int], int], target: int, max_num: int
     count = 0
     start = min(target, max_num)
     for x in range(start, 0, -1):
-        count += count_sum_cache(cache, target - x, x)
+        new_target = target - x
+        count += count_sum_cache(cache, new_target, x)
 
     cache[key] = count
     return count
 
 
 def solve_cache() -> int:
+    """
+    use cache (dict)
+    """
     target = 100
     cache = {}
     result = count_sum_cache(cache, target, target)
@@ -80,6 +84,43 @@ def count_sum_cache_wrap(target: int, max_num: int) -> int:
     return count
 
 def solve_cache_functools() -> int:
+    """
+    use cache (functools.cache)
+    """
     target = 100
     result = count_sum_cache_wrap(target, target)
     return result - 1
+
+
+def partitions_cache(cache: dict[int, int], n: int) -> int:
+    if n in cache:
+        return cache[n]
+
+    if n == 0:
+        return 1
+
+    result = 0
+    for x in range(1, n + 1):
+        sign = (x % 2) * 2 - 1
+        i = (3 * x * x - x) // 2
+        if i > n:
+            break
+
+        result += sign * partitions_cache(cache, n - i)
+        i += x
+        if i > n:
+            break
+
+        result += sign * partitions_cache(cache, n - i)
+
+    cache[n] = result
+    return result
+
+
+def solve_partition() -> int:
+    """
+    use partitions function
+    """
+    cache = {}
+    n = 100
+    return partitions_cache(cache, n) - 1
