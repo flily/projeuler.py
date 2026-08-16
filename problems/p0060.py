@@ -28,7 +28,7 @@ TIMEOUT_EXT = {
 TOTAL_NUMS = 5
 
 
-def gen_primes(n: int) -> tuple[list[int], set[int]]:
+def gen_primes_sieve(n: int) -> list[int]:
     """
     Generate prime numbers up to max_num.
     """
@@ -37,35 +37,68 @@ def gen_primes(n: int) -> tuple[list[int], set[int]]:
         if sieve[i // 2]:
             sieve[i * i // 2::i] = [False] * ((n - i * i - 1) // (2 * i) + 1)
 
-    primes = [2 * i + 1 for i in range(1, n // 2) if sieve[i]]
-    return primes, set(primes)
+    return sieve
+
+def is_prime_in_sieve(sieve: list[bool], n: int) -> bool:
+    """
+    Check if n is a prime number using sieve.
+    """
+    if n == 2:
+        return True
+
+    if n < 2 or n % 2 == 0:
+        return False
+
+    return sieve[n // 2]
 
 
-def is_prime(prime_list: list[int], prime_set: set[int], n: int) -> bool:
+def is_prime_in_list(prime_list: list[int], n: int) -> bool:
     """
     Check if n is a prime number.
     """
-    if n in prime_set:
-        return True
-
-    i, p = 0, 3
-    l = len(prime_list)
-    while i < l:
-        p = prime_list[i]
+    for p in prime_list:
         if p * p > n:
             return True
 
         if n % p == 0:
             return False
 
-        i += 1
+    return True
+
+
+def is_prime(n: int) -> bool:
+    """
+    Check if n is a prime number.
+    """
+    if n <= 1:
+        return False
+
+    if n == 2:
+        return True
+
+    if n % 2 == 0:
+        return False
+
+    i = 3
+    while i * i <= n:
+        if n % i == 0:
+            return False
+
+        i += 2
 
     return True
 
 
+# checked, correct
+# Python 3.14: ~150s
+# PyPy 7.3 (3.10): ~62s
 def solve_naive() -> int:
-    primes, prime_set = gen_primes(100_000_000)
-    main_primes = [x for x in primes if x < 10_000]
+    """
+    naive: check all prime combinations
+    """
+    prime_sieve = gen_primes_sieve(10_000)
+    primes = [2 * i + 1 for i in range(1, len(prime_sieve)) if prime_sieve[i]]
+    main_primes = [x for x in primes if 2 < x < 10_000]
 
     prime_pairs = set()
     prime_pair_map = {}
@@ -73,7 +106,7 @@ def solve_naive() -> int:
         ab = int(f"{a}{b}")
         ba = int(f"{b}{a}")
 
-        if is_prime(primes, prime_set, ab) and is_prime(primes, prime_set, ba):
+        if is_prime_in_list(primes, ab) and is_prime_in_list(primes, ba):
             # print(f"found: {a} {b} {ab} {ba}")
             prime_pairs.add((a, b))
             prime_pair_map.setdefault(a, set()).add(b)
@@ -125,63 +158,72 @@ def solve_naive() -> int:
 def find_prime_pair_set(
         prime_pairs: set[int],
         primes: list[int],
-        current: list[int],
-        length: int,
-        index: int,
+        prime_index: int,
+        state: list[int],
+        state_index: int,
     ) -> Generator[list[int], None, None]:
     """
     Find prime pair set.
     """
-    if len(current) == length:
-        yield current
+    if state_index == len(state):
+        yield state
         return
 
-    i = index
+    i = prime_index
     while i < len(primes):
         p = primes[i]
         found = True
-        for n in current:
+        for n in state[:state_index]:
             if (n, p) not in prime_pairs:
                 found = False
                 break
 
         if found:
-            yield from find_prime_pair_set(prime_pairs, primes, current + [p], length, i + 1)
+            state[state_index] = p
+            yield from find_prime_pair_set(prime_pairs, primes, i + 1, state, state_index + 1)
 
         i += 1
 
 
 def solve_optimized() -> int:
-    primes, prime_set = gen_primes(100_000_000)
-
-    main_primes = [x for x in primes if x < 10_000]
+    """
+    search prime pair list
+    """
+    prime_sieve = gen_primes_sieve(10_000)
+    main_primes = [x for x in range(3, 10_000, 2)
+                   if is_prime_in_sieve(prime_sieve, x) and x % 5 != 0]
     prime_pairs = set()
     prime_pair_map = {}
     for a, b in itertools.combinations(main_primes, 2):
         ab = int(f"{a}{b}")
         ba = int(f"{b}{a}")
 
-        if is_prime(primes, prime_set, ab) and is_prime(primes, prime_set, ba):
+        if is_prime_in_list(main_primes, ab) and is_prime_in_list(main_primes, ba):
             prime_pairs.add((a, b))
             prime_pair_map.setdefault(a, set()).add(b)
             prime_pair_map.setdefault(b, set()).add(a)
 
     possible_primes = set()
-    for k, v in prime_pair_map.items():
-        if len(v) >= TOTAL_NUMS - 1:
-            possible_primes.add(k)
-
     possible_prime_map = {}
     for k, v in prime_pair_map.items():
-        if k not in possible_primes:
+        if len(v) < TOTAL_NUMS - 1:
             continue
 
-        possible_prime_map[k] = [x for x in (v & possible_primes | set([k])) if x >= k]
-        possible_prime_map[k].sort()
+        possible_primes.add(k)
+        l = []
+        for x in v:
+            if x in possible_primes:
+                l.append(x)
+
+        l.append(k)
+        l.sort()
+        possible_prime_map[k] = l
 
     possible_prime_list = list(possible_prime_map.keys())
     possible_prime_list.sort()
-    for x in find_prime_pair_set(prime_pairs, possible_prime_list, [], TOTAL_NUMS, 0):
+
+    state = [0] * TOTAL_NUMS
+    for x in find_prime_pair_set(prime_pairs, possible_prime_list, 0, state, 0):
         return sum(x)
 
     return -1
