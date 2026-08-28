@@ -89,7 +89,7 @@ def solve_bruteforce_depth_first() -> int:
 
     # height, width = len(raw), len(raw[0])
     size = len(raw)     # square matrix
-    for x in range(1, size +1):
+    for x in range(1, size + 1):
         result = search_minimal_path_sum_dfs(raw, (81 - x, x), (0, 0), 0)
         # print(f"size: ({81 - x}, {x}), result: {result}")
 
@@ -124,7 +124,7 @@ def update_cell(
 
 def search_minimal_path_sum_flood(matrix: list[list[int]], size: tuple[int, int]) -> list[int]:
     width, height = size
-    path = [[None] * width for _ in range(height)]
+    path = [[None] * width] * height
 
     path[0][0] = matrix[0][0]
     for i in range(width + height):
@@ -154,32 +154,31 @@ def solve_bruteforce_breadth_first_flood() -> int:
 
 def search_minimal_path_sum_bfs_mark(matrix: list[list[int]], size: tuple[int, int]) -> list[int]:
     width, height = size
-    path = [[None] * width for _ in range(height)]
+    path = [[0] * width] * height
     path[0][0] = matrix[0][0]
 
     queue = [(0, 0)]
-    queue_count = {
-        (0, 0): 1
-    }
+    queue_count = [[0] * width] * height
+    queue_count[0][0] = 1
 
     while queue:
         x, y = queue.pop(0)
         update_cell(matrix, size, path, (y, x))
-        queue_count[(x, y)] -= 1
+        queue_count[y][x] -= 1
 
         if x + 1 < width:
             # update right
-            c = queue_count.get((x + 1, y), 0)
+            c = queue_count[y][x + 1]
             if c <= 0:
                 queue.append((x + 1, y))
-                queue_count[(x + 1, y)] = c + 1
+                queue_count[y][x + 1] = c + 1
 
         if y + 1 < height:
             # update down
-            c = queue_count.get((x, y + 1), 0)
+            c = queue_count[y + 1][x]
             if c <= 0:
                 queue.append((x, y + 1))
-                queue_count[(x, y + 1)] = c + 1
+                queue_count[y + 1][x] = c + 1
 
     # for row in path:
     #     items = [f"{x or -1:>5}" for x in row]
