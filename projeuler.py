@@ -489,7 +489,7 @@ class SolutionMethod:
         self.name = name
         self.note = note or ""
         self.timeout_ext = 0.0
-        self.time_cost = 0.0
+        self.time_cost_ms = 0.0
         self.result = _NotRunResult()
         self.finished = False
 
@@ -510,11 +510,11 @@ class SolutionMethod:
         if timeout > 0:
             total_timeout += self.timeout_ext
 
-        result, timeouted, cost = runner.run_func(
+        result, timeouted, cost_ms = runner.run_func(
             self.module_name, self.func, conf=conf, timeout=total_timeout
         )
         self.finished = not timeouted
-        self.time_cost = cost
+        self.time_cost_ms = cost_ms
         if not timeouted:
             self.result = result
 
@@ -594,7 +594,7 @@ class SolutionMethod:
         # column 5: time cost
         if self.has_result():
             total_timeout = timeout + self.timeout_ext
-            cost, style = _make_time_cost(self.time_cost, total_timeout)
+            cost, style = _make_time_cost(self.time_cost_ms, total_timeout)
             if is_best:
                 line.append(style.bold().background().apply(cost, is_tty))
             else:
@@ -605,7 +605,7 @@ class SolutionMethod:
         # note: timeout extra
         extra = ""
         if self.timeout_ext > 0.0:
-            if self.has_result() and self.time_cost < timeout:
+            if self.has_result() and self.time_cost_ms < timeout:
                 extra_colour = Style.green().bold().background()
             else:
                 extra_colour = Style.yellow().bold()
@@ -751,44 +751,40 @@ class ProblemSolver:
 
         return total_timeout
 
-    def _is_correct(self) -> bool:
+    def correct_count(self) -> tuple[int, int, int]:
         """
-        Is the solution correct, should have at less one correct result.
+        Get the counts of correct, wrong, and total methods.
         """
-        result = False
+        correct, wrong, total = 0, 0, 0
         for method in self.methods.values():
+            total += 1
             if method.is_timeout():
                 continue
 
             if not method.has_result():
                 continue
 
-            if self.answer is not None and method.result != self.answer:
-                result = result or False
-                continue
+            if self.answer is not None:
+                if method.result == self.answer:
+                    correct += 1
+                else:
+                    wrong += 1
 
-            result = result or True
+        return correct, wrong, total
 
-        return result
+    def _is_correct(self) -> bool:
+        """
+        Is the solution correct, should have at less one correct result.
+        """
+        correct, _, _ = self.correct_count()
+        return correct > 0
 
     def _is_all_correct(self) -> bool:
         """
         Is all methods correct.
         """
-        has_correct = False
-        for method in self.methods.values():
-            if method.is_timeout():
-                continue
-
-            if method.result is None:
-                continue
-
-            if self.answer is not None and method.result != self.answer:
-                return False
-
-            has_correct = True
-
-        return has_correct
+        correct, wrong, _ = self.correct_count()
+        return correct > 0 and wrong == 0
 
     def is_correct(self, strict: bool = False) -> bool:
         """
@@ -821,14 +817,24 @@ class ProblemSolver:
             if check and self.answer is not None and method.result != self.answer:
                 continue
 
-            if cost is None or method.time_cost < cost:
-                cost = method.time_cost
+            if cost is None or method.time_cost_ms < cost:
+                cost = method.time_cost_ms
                 best = name
 
         return best
 
+    def cost_real_time_ms(self) -> float:
+        """
+        Get the real time cost of the problem solver.
+        """
+        total_cost_ms = 0.0
+        for _, method in self.each_methods():
+            total_cost_ms += method.time_cost_ms
+
+        return total_cost_ms
+
     def print(
-        self, timeout: float = 0.0, time_cost: float = 0.0,
+        self, timeout: float = 0.0, time_cost_ms: float = 0.0,
         check: bool = False, strict: bool = False, is_tty: bool = False
     ) -> str:
         """
@@ -857,12 +863,12 @@ class ProblemSolver:
                 line = method.print("", title, answer=answer, is_best=is_best,
                                     timeout=timeout, is_tty=is_tty)
                 lines.append(line)
-                total_cost_ms += method.time_cost
+                total_cost_ms += method.time_cost_ms
 
-            overhead_ms = time_cost - total_cost_ms
+            overhead_ms = time_cost_ms - total_cost_ms
             _, overhead_style = _make_time_cost(overhead_ms, timeout)
             overhead = overhead_style.apply(f" +~> {overhead_ms:.3f} ms", is_tty)
-            cost, cost_style = _make_time_cost(time_cost, total_timeout)
+            cost, cost_style = _make_time_cost(time_cost_ms, total_timeout)
             cost_text = cost_style.apply(cost, is_tty)
             answer_empty = " " * 30
 
@@ -903,7 +909,7 @@ class ProblemSolver:
 
         return "\n".join(lines)
 
-    def solve(self, runner: Runner, conf: RunConfigure, pattern: str = None) -> float:
+    def solve(self, runner: Runner, conf: RunConfigure, pattern: str | None = None) -> float:
         """
         Solve the problem.
         """
@@ -1026,8 +1032,8 @@ class Runner:
         time_start = time.perf_counter()
         result = func()
         time_finish = time.perf_counter()
-        dt = 1000.0 * (time_finish - time_start)
-        return result, False, dt
+        dtms = 1000.0 * (time_finish - time_start)
+        return result, False, dtms
 
 
 def _natural_filename(filename: str) -> Iterable[str | int]:
@@ -1230,10 +1236,13 @@ def do_run(conf: RunConfigure):
     runner.reset_pool()
 
     retcode = 0
-    success, count, methods = 0, 0, 0
+    problem_success, problem_total = 0, 0
+    solution_success, solution_total = 0, 0
+    real_time_cost_ms = 0.0
     time_start = datetime.now()
     is_tty = sys.stdout.isatty() or conf.colour
 
+    reason = None
     print(OUTPUT_SEPLINE)
     print(f"| {'PID':>4} | {'Title / Solution':<40} "
           f"| {'Answer':^30} | {'Result':^9} | {'Time':^12} |")
@@ -1248,32 +1257,54 @@ def do_run(conf: RunConfigure):
             problem.use_extra_timeout_map = conf.extra_timeout_map
             problem.update_all_extra_timeout()
 
-            cost = problem.solve(runner, conf=conf, pattern=name)
-            line = problem.print(timeout=conf.timeout, time_cost=cost,
+            cost_ms = problem.solve(runner, conf=conf, pattern=name)
+            line = problem.print(timeout=conf.timeout, time_cost_ms=cost_ms,
                                  check=conf.check, strict=conf.strict, is_tty=is_tty)
             if conf.check:
+                cc, _, _ = problem.correct_count()
+                solution_success += cc
+
                 if problem.is_correct(strict=conf.strict):
-                    success += 1
+                    problem_success += 1
                 else:
                     retcode = 1
 
+            problem_total += 1
+            solution_total += len(problem.methods)
+            real_time_cost_ms += problem.cost_real_time_ms()
+
             print(line)
-            count += 1
-            methods += len(problem.methods)
 
     except KeyboardInterrupt:
-        print("Interrupted by user")
+        reason = "Interrupted by user"
         retcode = 1
 
     finally:
         time_finish = datetime.now()
-        print(OUTPUT_SEPLINE)
+        print("\r" + OUTPUT_SEPLINE)
+
+        if reason is not None:
+            print(reason)
+
+        text_psucc = Style.green().apply(f"{problem_success}", is_tty)
+        text_ptotal = Style.blue().apply(f"{problem_total}", is_tty)
+        succ_rate = 100.0 * problem_success / problem_total
+        if problem_success < problem_total:
+            text_succ_rate = Style.red().apply(f"{succ_rate:.2f}", is_tty)
+        else:
+            text_succ_rate = Style.green().apply(f"{succ_rate:.2f}", is_tty)
+
+        print(f"Problems: {text_psucc}/{text_ptotal} ({text_succ_rate}%), "
+              f"Solutions: {solution_success}/{solution_total}, "
+              f"Solution timeout: {int(conf.timeout):d} ms"
+              )
 
         dt = (time_finish - time_start).total_seconds()
-        if conf.check:
-            print(f"Solved {success}/{count} problems in {dt:.3f}s")
-        else:
-            print(f"Solved {count} problems solved in {dt:.3f}s")
+        rt = real_time_cost_ms / 1000.0
+        text_rt = Style.yellow().apply(f"{rt:.2f} s", is_tty)
+        text_wt = Style.yellow().apply(f"{dt:.2f} s", is_tty)
+        text_overhead = Style.red().apply(f"{dt - rt:.2f} s", is_tty)
+        print(f"Run {text_rt} / Total {text_wt} (Overhead: {text_overhead})")
 
         runner.close()
 
