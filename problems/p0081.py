@@ -124,7 +124,7 @@ def update_cell(
 
 def search_minimal_path_sum_flood(matrix: list[list[int]], size: tuple[int, int]) -> list[int]:
     width, height = size
-    path = [[None] * width] * height
+    path = [[None] * width for _ in range(height)]
 
     path[0][0] = matrix[0][0]
     for i in range(width + height):
@@ -154,11 +154,11 @@ def solve_bruteforce_breadth_first_flood() -> int:
 
 def search_minimal_path_sum_bfs_mark(matrix: list[list[int]], size: tuple[int, int]) -> list[int]:
     width, height = size
-    path = [[0] * width] * height
+    path = [[0] * width for _ in range(height)]
     path[0][0] = matrix[0][0]
 
     queue = [(0, 0)]
-    queue_count = [[0] * width] * height
+    queue_count = [[0] * width for _ in range(height)]
     queue_count[0][0] = 1
 
     while queue:
