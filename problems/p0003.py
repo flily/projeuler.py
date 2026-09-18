@@ -12,6 +12,7 @@ What is the largest prime factor of the number 600851475143?
 
 
 from typing import List
+import bisect
 
 
 PID = 3
@@ -44,7 +45,7 @@ def solve_naive() -> int:
     i = 3
     last = 3
     while 2 * i <= n:
-        if is_prime(i) and n % i == 0:
+        if n % i == 0 and is_prime(i):
             last = i
 
         i += 2
@@ -67,7 +68,7 @@ def solve_by_remove_factor() -> int:
     i = 3
     last = 3
     while n > 0 and i <= n:
-        if is_prime(i) and n % i == 0:
+        if n % i == 0 and is_prime(i):
             last = i
             n = remove_factor(n, i)
 
@@ -82,10 +83,10 @@ class PrimeTable:
     """
 
     def __init__(self, primes: List[int]):
-        self.prime_list = primes
-        self.prime_list.sort()
+        self.primes = primes
+        self.primes.sort()
         self.prime_set = set(primes)
-        self.largest = self.prime_list[-1]
+        self.largest = self.primes[-1]
 
     def check_prime(self, n: int) -> bool:
         """
@@ -94,16 +95,52 @@ class PrimeTable:
         if n <= self.largest:
             return n in self.prime_set
 
-        for p in self.prime_list:
+        for p in self.primes:
             if n % p == 0:
                 return False
 
-        self.prime_list.append(n)
+        self.primes.append(n)
         self.prime_set.add(n)
         return True
 
 
-def find_largest_prime_factor(primes: PrimeTable, n: int) -> int:
+class PrimeList:
+    """
+    Prime list
+    """
+    def __init__(self, primes: List[int]):
+        self.size = 1000
+        self.primes = [0] * 1000
+        self.count = len(primes)
+        for i in range(self.count):
+            self.primes[i] = primes[i]
+
+    def add(self, p: int):
+        if self.count >= len(self.primes):
+            self.primes.extend([0] * self.size)
+
+        self.primes[self.count] = p
+        self.count += 1
+
+    def check_prime(self, n: int) -> bool:
+        """
+        Check if n is a prime
+        """
+        largest = self.primes[self.count - 1]
+        if n <= largest:
+            index = bisect.bisect(self.primes, n, 0, self.count)
+            return self.primes[index] == n
+
+        for i in range(self.count):
+            p = self.primes[i]
+            if n % p == 0:
+                return False
+
+        self.add(n)
+        return True
+
+
+def find_largest_prime_factor(primes: PrimeTable | PrimeList, n: int) -> int:
     """
     Find largest prime factor of n
     """
@@ -114,6 +151,7 @@ def find_largest_prime_factor(primes: PrimeTable, n: int) -> int:
 
     i = 3
     while n > 0 and i <= n:
+        # check prime first to make prime list correct
         if primes.check_prime(i) and n % i == 0:
             factors.append(i)
             n = remove_factor(n, i)
@@ -129,6 +167,13 @@ def find_largest_prime_factor(primes: PrimeTable, n: int) -> int:
 def solve_by_prime_table() -> int:
     primes_base = [3, 5, 7, 11, 13, 17, 19]
     primes = PrimeTable(primes_base)
+
+    return find_largest_prime_factor(primes, NUMBER)
+
+
+def solve_by_prime_list() -> int:
+    primes_base = [3, 5, 7, 11, 13, 17, 19]
+    primes = PrimeList(primes_base)
 
     return find_largest_prime_factor(primes, NUMBER)
 
