@@ -84,19 +84,19 @@ def search_minimal_path_sum_flood(matrix: list[list[int]], size: tuple[int, int]
     for x in range(height):
         path[x][0] = matrix[x][0]
 
-    for x in range(width):
-        for y in range(height):
-            update_cell(matrix, size, path, (y, x))
+    for y in range(height):
+        for x in range(width):
+            update_cell(matrix, size, path, (x, y))
 
-        for y in range(height - 1, -1, -1):
-            update_cell(matrix, size, path, (y, x))
+        for x in range(width - 1, -1, -1):
+            update_cell(matrix, size, path, (x, y))
 
         # for row in path:
         #     items = [f"{x or -1:>5}" for x in row]
         #     print("  ".join(items))
         # print("--------")
 
-    return min(path[y][width - 1] for y in range(height))
+    return min(path[x][height - 1] for x in range(width))
 
 def solve_bruteforce_breadth_first_flood() -> int:
     """
