@@ -82,6 +82,17 @@ def solve_naive() -> int:
     return largest
 
 
+def solve_precomputed_digits() -> int:
+    largest = 0
+    digits = [int(x) for x in N]
+    for i in range(len(N) - 13):
+        int_slice = digits[i : i + 13]
+        p = product(*int_slice)
+        largest = max(largest, p)
+
+    return largest
+
+
 def solve_with_buffer() -> int:
     buffer = [int(x) for x in N[:13]]
     largest = product(*buffer)
@@ -97,7 +108,21 @@ def solve_with_buffer() -> int:
     return largest
 
 
-def solve_with_buffer_no_append() -> int:
+def solve_with_ring_buffer() -> int:
+    buffer = [int(x) for x in N[:13]]
+    largest = product(*buffer)
+    i = 13
+    while i < len(N):
+        buffer[i % 13] = int(N[i])
+        p = product(*buffer)
+        largest = max(largest, p)
+
+        i += 1
+
+    return largest
+
+
+def solve_with_buffer_ring_if() -> int:
     buffer = [int(x) for x in N[:13]]
     largest = product(*buffer)
     i, j = 13, 0
@@ -110,5 +135,20 @@ def solve_with_buffer_no_append() -> int:
         j += 1
         if j >= 13:
             j = 0
+
+    return largest
+
+
+def solve_with_ring_buffer_and_digits() -> int:
+    digits = [int(x) for x in N]
+    buffer = list(digits[:13])
+    largest = product(*buffer)
+    i = 13
+    while i < len(N):
+        buffer[i % 13] = digits[i]
+        p = product(*buffer)
+        largest = max(largest, p)
+
+        i += 1
 
     return largest
