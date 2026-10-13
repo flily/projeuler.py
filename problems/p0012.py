@@ -33,10 +33,13 @@ def get_divisors(n: int) -> int:
     Get the number of divisors of n.
     """
     c, i = 2, 2
-    while i * i <= n:
+    while i * i < n:
         if n % i == 0:
             c += 2
         i += 1
+
+    if i * i == n:
+        c += 1
 
     return c
 
@@ -52,13 +55,11 @@ def solve_naive() -> int:
 
 def solve_with_filter() -> int:
     n, i = 1, 2
-    found = False
     common_factors = 2 * 3 * 5 * 7 * 11 * 13
-    while not found:
+    while True:
         if n % common_factors == 0:
             c = get_divisors(n)
             if c >= 500:
-                found = True
                 break
 
         n += i
