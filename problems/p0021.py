@@ -61,7 +61,8 @@ def find_divisors_by_sqrt(n: int) -> list:
     while i * i <= n:
         if n % i == 0:
             result.append(i)
-            result.append(n // i)
+            if i != n // i:
+                result.append(n // i)
         i += 1
 
     return result
@@ -91,7 +92,10 @@ def divisors_sum_by_sqrt(n: int):
     i = 2
     while i * i <= n:
         if n % i == 0:
-            result += i + (n // i)
+            if i != n // i:
+                result += i + (n // i)
+            else:
+                result += i
         i += 1
 
     return result
