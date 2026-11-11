@@ -8,19 +8,10 @@ Helper module for loading external data.
 
 
 import inspect
-import importlib
 
 from typing import (
     Callable,
 )
-
-
-def _preload_module_data(data_name):
-    mod = importlib.import_module(data_name)
-    if not hasattr(mod, "load"):
-        raise AttributeError(f"module {mod} has no attribute 'load'")
-
-    return mod.load()
 
 
 def _module_name(full_name: str) -> str:
@@ -34,10 +25,6 @@ def _get_caller_module_name(index=1) -> str:
     full_name = caller_module.__name__  # e.g. "problems.p0022"
     return _module_name(full_name)
 
-
-def _default_data_handler(raw: str) -> list[str]:
-    print("default data handler called")
-    return raw.splitlines()
 
 class _DataLoader:
     """
